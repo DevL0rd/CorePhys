@@ -1,0 +1,22 @@
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\bin\Debug\CorePhys.exe.config
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\bin\Debug\CorePhys.exe
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\bin\Debug\CorePhys.pdb
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\bin\Debug\CorePhys.xml
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\CorePhys.vbprojResolveAssemblyReference.cache
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\ParticlePhysics.Form1.resources
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\ParticlePhysics.Resources.resources
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\CorePhys.vbproj.GenerateResource.Cache
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\CorePhys.exe
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\CorePhys.xml
+s:\Dustin\Documents\Visual Studio 2015\Projects\CorePhys\CorePhys\obj\Debug\CorePhys.pdb
+S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.exe.config
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\CorePhys.exe
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\CorePhys.xml
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\CorePhys.pdb
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\CorePhys.vbprojResolveAssemblyReference.cache
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\ParticlePhysics.Form1.resources
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\ParticlePhysics.Resources.resources
+S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\CorePhys.vbproj.GenerateResource.Cache
+S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.exe
+S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.pdb
+S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.xml
