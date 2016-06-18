@@ -20,3 +20,14 @@ S:\Dropbox\Development\CorePhys\CorePhys\obj\Debug\CorePhys.vbproj.GenerateResou
 S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.exe
 S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.pdb
 S:\Dropbox\Development\CorePhys\CorePhys\bin\Debug\CorePhys.xml
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\bin\Debug\CorePhys.exe.config
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\CorePhys.exe
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\CorePhys.xml
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\CorePhys.pdb
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\bin\Debug\CorePhys.exe
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\bin\Debug\CorePhys.pdb
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\bin\Debug\CorePhys.xml
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\CorePhys.vbprojResolveAssemblyReference.cache
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\ParticlePhysics.Form1.resources
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\ParticlePhysics.Resources.resources
+C:\Users\duharris-a\Source\Repos\CorePhys\CorePhys\obj\Debug\CorePhys.vbproj.GenerateResource.Cache

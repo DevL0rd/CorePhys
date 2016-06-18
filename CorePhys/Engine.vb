@@ -25,6 +25,8 @@ Module Engine
     Public ClickedRectID As Integer = 0
     Public LeftClicking As Boolean = False
     Public RightClicking As Boolean = False
+    Public RightClickMenu As Boolean = False
+    Public RightClickPoint As Point = New Point(0, 0)
     Public MouseX As Long = 0
     Public MouseY As Long = 0
     Sub InitGraphics()
@@ -49,7 +51,6 @@ Module Engine
             Application.DoEvents()
             PhysicsThread(0)
             DrawGraphics()
-            Form1.Button1.Text = MaxTicks
             Application.DoEvents()
         Loop
         'physthread.Abort()
@@ -57,6 +58,7 @@ Module Engine
     Private Sub DrawGraphics()
         'rect drawing
         Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
+        Dim index As Integer = 1
         Dim name As String
         Dim x As Double
         Dim y As Double
@@ -67,45 +69,45 @@ Module Engine
         Dim frame As Integer
         Dim framedelay As Integer
         Dim nextframecountdown As Integer
-        While rectcount >= 0
-            name = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(0)
-            x = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(1)
-            y = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(2)
-            w = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(3)
-            h = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(4)
+        While index < rectcount + 1
+            name = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(0)
+            x = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(1)
+            y = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(2)
+            w = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(3)
+            h = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(4)
             If x + w > 0 AndAlso x < Form1.Width AndAlso y + h > 0 AndAlso y < Form1.Width Then
-                texture = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(11)
-                status = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(12)
-                frame = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(13)
-                framedelay = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(14)
-                nextframecountdown = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(15)
-                If Not texture = "INVIS" Then
+                texture = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(11)
+                status = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(12)
+                frame = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(13)
+                framedelay = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(14)
+                nextframecountdown = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(15)
+                If Not texture = "none" Then
                     If nextframecountdown <= 0 Then
-                        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(13) = frame + 1
-                        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(15) = framedelay
+                        Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(13) = frame + 1
+                        Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(15) = framedelay
                     Else
-                        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(15) -= 1
+                        Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(15) -= 1
                     End If
                     If Textures.ContainsKey(texture & "-" & status & "-" & frame & ".png") Then
                         G.DrawImage(Textures.Item(texture & "-" & status & "-" & frame & ".png"), New Rectangle(x, y, w, h))
                         If Debug = True Then G.DrawRectangle(Pens.Red, New Rectangle(x, y, w, h))
                     Else
-                        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(13) = 1
+                        Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(13) = 1
                         frame = 1
                         If Textures.ContainsKey(texture & "-" & status & "-" & frame & ".png") Then
                             G.DrawImage(Textures.Item(texture & "-" & status & "-" & frame & ".png"), New Rectangle(x, y, w, h))
-                        Else
-                            MsgBox("Missing texture for rect: " & name & "   ID:" & rectcount)
                         End If
                     End If
-                    If Debug = True Then
-                        G.DrawRectangle(Pens.Red, New Rectangle(x, y, w, h))
-                        G.DrawString("X=" & x & " Y=" & y, Form1.Font, Brushes.Blue, New Point(x + 1, y + 1))
-                        G.DrawString("X=" & MouseX & " Y=" & MouseY, Form1.Font, Brushes.Green, New Point(MouseX + 1, MouseY + 1))
-                    End If
+
+                End If
+                If Debug = True Then
+                    G.DrawRectangle(Pens.Red, New Rectangle(x, y, w, h))
+                    G.DrawString(MaxTicks, Form1.Font, Brushes.Red, New Point(1, 1))
+                    G.DrawString("X=" & x & " Y=" & y, Form1.Font, Brushes.Blue, New Point(x + 1, y + 1))
+                    G.DrawString("X=" & MouseX & " Y=" & MouseY, Form1.Font, Brushes.Green, New Point(MouseX + 1, MouseY + 1))
                 End If
             End If
-            rectcount -= 1
+            index += 1
         End While
         ' DRAW BUFFER TO SCREEN
         G = Graphics.FromImage(BB)
@@ -282,9 +284,9 @@ Module Engine
     End Sub
     Private Sub HandleInput()
         If LeftClicking = True And ClickedRectID > 0 Then
-            SetXY(ClickedRectID, MouseX, MouseY)
-            LeftClicking = False
-            ClickedRectID = 0
+            Dim rw As Long = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3)
+            Dim rh As Long = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4)
+            SetXY(ClickedRectID, MouseX - (rw / 2), MouseY - (rh / 2))
         End If
     End Sub
 
@@ -306,30 +308,26 @@ Module Engine
         Dim Had_Error As Boolean = False
         Dim FileName As String = File
         File = BIN & File
-        Dim FileIndex As Integer = Convert.ToInt32(ReadIni(File, "WorldInfo", "FileIndex", ""))
         GlobalForceX = ReadIni(File, "WorldInfo", "GlobalForceX", "")
         GlobalForceY = ReadIni(File, "WorldInfo", "GlobalForceY", "")
         GlobalFriction = ReadIni(File, "WorldInfo", "GlobalFriction", "")
         PlayerRectName = ReadIni(File, "WorldInfo", "PlayerRectName", "")
         Dim Node As New Dictionary(Of String, List(Of List(Of String)))
-        Do Until FileIndex <= 0
-            Dim NodeName As String = ReadIni(File, "Node-" & FileIndex, "Node", "")
-            Dim NodeIndex As Integer = Convert.ToInt32(ReadIni(File, "Node-" & FileIndex, "NodeIndex", ""))
-            Dim Objects As New List(Of List(Of String))
-            Do Until NodeIndex <= 0
-                Dim Vals As New List(Of String)
-                Dim values As String() = Nothing
-                values = ReadIni(File, "Node-" & FileIndex, "Val-" & NodeIndex, "").Split("*")
-                Dim s As String
-                For Each s In values
-                    Vals.Add(s)
-                Next
-                Objects.Add(Vals)
-                NodeIndex -= 1
-            Loop
-            Node.Add(NodeName, Objects)
-            FileIndex -= 1
-        Loop
+        Dim NodeIndex As Integer = Convert.ToInt32(ReadIni(File, "Rectangles", "NodeIndex", ""))
+        Dim index As Integer = 1
+        Dim Objects As New List(Of List(Of String))
+        While index < NodeIndex + 1
+            Dim Vals As New List(Of String)
+            Dim values As String() = Nothing
+            values = ReadIni(File, "Rectangles", "Val-" & index, "").Split("*")
+            Dim s As String
+            For Each s In values
+                Vals.Add(s)
+            Next
+            Objects.Add(Vals)
+            index += 1
+        End While
+        Node.Add("Rectangles", Objects)
         Memory.Add(FileName, Node)
         Textures.Clear()
         If System.IO.Directory.Exists(BIN & "Textures\") Then
@@ -343,33 +341,56 @@ Module Engine
         End If
         EngineLoop()
     End Sub
-    Function HandleMouseClick(Mouse As MouseEventArgs)
-        Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
-        Dim index As Integer = 0
-        Dim rx As Long
-        Dim ry As Long
-        Dim rw As Long
-        Dim rh As Long
-        Dim clickrect As Rectangle = New Rectangle(Mouse.X, Mouse.Y, 1, 1)
-        Dim testedrect As Rectangle
-        While index <= rectcount
-            rx = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(1)
-            ry = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(2)
-            rw = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(3)
-            rh = Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(4)
-            testedrect = New Rectangle(rx, ry, rw, rh)
-            If clickrect.IntersectsWith(testedrect) Then
-                ClickedRectID = index
-                index = rectcount + 1
-            End If
+    Sub Save(File As String)
+        File = BIN & File
+        writeIni(File, "WorldInfo", "GlobalForceX", GlobalForceX)
+        writeIni(File, "WorldInfo", "GlobalForceY", GlobalForceY)
+        writeIni(File, "WorldInfo", "GlobalFriction", GlobalFriction)
+        writeIni(File, "WorldInfo", "PlayerRectName", PlayerRectName)
+        Dim Objects As New List(Of List(Of String))
+        Dim index As Integer = 1
+        Dim NodeIndex As Integer = Memory.Item("Test.CP").Item("Rectangles").Count
+        Dim concatstr As String = ""
+        For Each rect As List(Of String) In Memory.Item("Test.CP").Item("Rectangles")
+            concatstr = rect.Item(0) & "*" & rect.Item(1) & "*" & rect.Item(2) & "*" & rect.Item(3) & "*" & rect.Item(4) & "*" & rect.Item(5) & "*" & rect.Item(6) & "*" & rect.Item(7) & "*" & rect.Item(8) & "*" & rect.Item(9) & "*" & rect.Item(10) & "*" & rect.Item(11) & "*" & rect.Item(12) & "*" & rect.Item(13) & "*" & rect.Item(14) & "*" & rect.Item(15) & "*" & rect.Item(16)
+            writeIni(File, "Rectangles", "Val-" & index, concatstr)
             index += 1
-        End While
+        Next
+        writeIni(File, "Rectangles", "NodeIndex", Memory.Item("Test.CP").Item("Rectangles").Count)
+    End Sub
+    Function HandleMouseClick(Mouse As MouseEventArgs)
         If Mouse.Button = MouseButtons.Left Then
             LeftClicking = True
+            Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
+            Dim rx As Long
+            Dim ry As Long
+            Dim rw As Long
+            Dim rh As Long
+            Dim clickrect As Rectangle = New Rectangle(Mouse.X, Mouse.Y, 1, 1)
+            Dim testedrect As Rectangle
+            While rectcount > 0
+                rx = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(1)
+                ry = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(2)
+                rw = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(3)
+                rh = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(4)
+                testedrect = New Rectangle(rx, ry, rw, rh)
+                If clickrect.IntersectsWith(testedrect) Then
+                    ClickedRectID = rectcount
+                    rectcount = 0
+                End If
+                rectcount -= 1
+            End While
         End If
         Return 0
     End Function
     Function HandleMouseRelease(Mouse As MouseEventArgs)
+        LeftClicking = False
+        RightClicking = False
+        If Mouse.Button = MouseButtons.Right Then
+            Form1.RightClickMenu.Location = New Point(Mouse.X, Mouse.Y)
+            Form1.RightClickMenu.Visible = True
+        End If
+        ClickedRectID = 0
         Return 0
     End Function
     Function HandleMouseMove(Mouse As MouseEventArgs)
@@ -431,6 +452,28 @@ Module Engine
             Application.DoEvents()
             rectcount -= 1
         End While
+    End Sub
+
+    Sub AddBlankRect()
+        Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count
+        Memory.Item("Test.CP").Item("Rectangles").Add(New List(Of String))
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("NewRect-" & rectcount)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(Form1.RightClickMenu.Location.X)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(Form1.RightClickMenu.Location.Y)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("30")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("30")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("True")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("False")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("none")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("down")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("1")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("5")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("none")
     End Sub
 
     Sub SetXY(RectID As Integer, X As Long, Y As Long)

@@ -4,10 +4,7 @@
     Private BlinkRate As Integer = 5000
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-
-    End Sub
-
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        Me.Show()
         PlayerBlink.Enabled = True
         PlayerBlink.Interval = BlinkRate
         PlayerBlink.Start()
@@ -15,6 +12,7 @@
     End Sub
 
     Private Sub Form1_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
+        RightClickMenu.Visible = False
         If e.KeyValue = Keys.W Then
             Engine.SetState(PlayerRectName, "upwalk")
             Engine.SetForce(PlayerRectName, 0, -3)
@@ -30,6 +28,12 @@
         If e.KeyValue = Keys.S Then
             Engine.SetState(PlayerRectName, "downwalk")
             Engine.SetForce(PlayerRectName, 0, 3)
+        End If
+        If e.KeyValue = Keys.F2 Then
+            Engine.Save("Test.CP")
+        End If
+        If e.KeyValue = Keys.F1 Then
+            Engine.Load("Test.CP")
         End If
     End Sub
 
@@ -75,7 +79,8 @@
         Engine.InitGraphics()
     End Sub
 
-    Private Sub Form1_MouseClick(sender As Object, e As MouseEventArgs) Handles Me.MouseClick
+    Private Sub Form1_MouseDown(sender As Object, e As MouseEventArgs) Handles Me.MouseDown
+        RightClickMenu.Visible = False
         Engine.HandleMouseClick(e)
     End Sub
 
@@ -85,5 +90,9 @@
 
     Private Sub Form1_MouseUp(sender As Object, e As MouseEventArgs) Handles Me.MouseUp
         Engine.HandleMouseRelease(e)
+    End Sub
+
+    Private Sub AddObject_Click(sender As Object, e As EventArgs) Handles AddObject.Click
+        Engine.AddBlankRect()
     End Sub
 End Class
