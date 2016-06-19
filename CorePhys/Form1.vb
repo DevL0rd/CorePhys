@@ -12,7 +12,6 @@
     End Sub
 
     Private Sub Form1_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
-        RightClickMenu.Visible = False
         If e.KeyValue = Keys.W Then
             Engine.SetState(PlayerRectName, "upwalk")
             Engine.SetForce(PlayerRectName, 0, -3)
@@ -94,5 +93,40 @@
 
     Private Sub AddObject_Click(sender As Object, e As EventArgs) Handles AddObject.Click
         Engine.AddBlankRect()
+
+        RightClickMenu.Visible = False
+    End Sub
+
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        Engine.Memory.Item("Test.CP").Item("Rectangles").RemoveAt(Engine.ClickedRectID)
+        RightClickMenu.Visible = False
+    End Sub
+
+    Private Sub ismoveable_CheckedChanged(sender As Object, e As EventArgs) Handles ismoveable.CheckedChanged
+        If ismoveable.Checked = True Then
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(10) = "True"
+        Else
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(10) = "False"
+        End If
+    End Sub
+
+    Private Sub cancollide_CheckedChanged(sender As Object, e As EventArgs) Handles cancollide.CheckedChanged
+        If cancollide.Checked = True Then
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(9) = "True"
+        Else
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(9) = "False"
+        End If
+    End Sub
+
+    Private Sub mass_TextChanged(sender As Object, e As EventArgs) Handles mass.TextChanged
+        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5) = mass.Text
+    End Sub
+
+    Private Sub width_TextChanged(sender As Object, e As EventArgs) Handles Owidth.TextChanged
+        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3) = Owidth.Text
+    End Sub
+
+    Private Sub height_TextChanged(sender As Object, e As EventArgs) Handles Oheight.TextChanged
+        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4) = Oheight.Text
     End Sub
 End Class

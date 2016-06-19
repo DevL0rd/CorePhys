@@ -387,11 +387,43 @@ Module Engine
         LeftClicking = False
         RightClicking = False
         If Mouse.Button = MouseButtons.Right Then
+
+            Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
+            Dim rx As Long
+            Dim ry As Long
+            Dim rw As Long
+            Dim rh As Long
+            Dim clickrect As Rectangle = New Rectangle(Mouse.X, Mouse.Y, 1, 1)
+            Dim testedrect As Rectangle
+            While rectcount > 0
+                rx = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(1)
+                ry = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(2)
+                rw = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(3)
+                rh = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(4)
+                testedrect = New Rectangle(rx, ry, rw, rh)
+                If clickrect.IntersectsWith(testedrect) Then
+                    ClickedRectID = rectcount
+                    rectcount = 0
+                End If
+                rectcount -= 1
+            End While
             Form1.RightClickMenu.Location = New Point(Mouse.X, Mouse.Y)
+            If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(10) = "True" Then
+                Form1.ismoveable.Checked = True
+            Else
+                Form1.ismoveable.Checked = False
+            End If
+            If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(9) = "True" Then
+                Form1.cancollide.Checked = True
+            Else
+                Form1.cancollide.Checked = False
+            End If
+            Form1.mass.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5)
+            Form1.Owidth.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3)
+            Form1.Oheight.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4)
             Form1.RightClickMenu.Visible = True
-        End If
-        ClickedRectID = 0
-        Return 0
+            End If
+            Return 0
     End Function
     Function HandleMouseMove(Mouse As MouseEventArgs)
         MouseX = Mouse.X
