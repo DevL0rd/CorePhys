@@ -407,7 +407,7 @@ Module Engine
                 End If
                 rectcount -= 1
             End While
-            Form1.RightClickMenu.Location = New Point(Mouse.X, Mouse.Y)
+
             If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(10) = "True" Then
                 Form1.ismoveable.Checked = True
             Else
@@ -418,12 +418,25 @@ Module Engine
             Else
                 Form1.cancollide.Checked = False
             End If
+
             Form1.mass.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5)
             Form1.Owidth.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3)
             Form1.Oheight.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4)
-            Form1.RightClickMenu.Visible = True
+            Form1.TextureName.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(11)
+            Form1.RightClickMenu.Location = New Point(Mouse.X, Mouse.Y)
+            If Form1.RightClickMenu.Size.Width + Form1.RightClickMenu.Location.X > Form1.Width - 17 Then
+                Form1.RightClickMenu.Location = New Point((Form1.Width - 17) - (Form1.RightClickMenu.Size.Width + 1), Form1.RightClickMenu.Location.Y)
+            ElseIf Form1.RightClickMenu.Location.X < 1 Then
+                Form1.RightClickMenu.Location = New Point(1, Form1.RightClickMenu.Location.Y)
             End If
-            Return 0
+            If Form1.RightClickMenu.Size.Height + Form1.RightClickMenu.Location.Y > Form1.Height - 32 Then
+                Form1.RightClickMenu.Location = New Point(Form1.RightClickMenu.Location.X, (Form1.Height - 32) - (Form1.RightClickMenu.Size.Height + 1))
+            ElseIf Form1.RightClickMenu.Location.Y < 1 Then
+                Form1.RightClickMenu.Location = New Point(Form1.RightClickMenu.Location.X, 1)
+            End If
+            Form1.RightClickMenu.Visible = True
+        End If
+        Return 0
     End Function
     Function HandleMouseMove(Mouse As MouseEventArgs)
         MouseX = Mouse.X

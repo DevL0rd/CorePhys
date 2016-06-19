@@ -119,14 +119,67 @@
     End Sub
 
     Private Sub mass_TextChanged(sender As Object, e As EventArgs) Handles mass.TextChanged
-        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5) = mass.Text
+        Dim intobj As Integer
+        If Integer.TryParse(mass.Text, intobj) Then
+            If Int(mass.Text) >= 0 Then
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5) = mass.Text
+            Else
+                mass.Text = 0
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5) = "0"
+            End If
+        Else
+            mass.Text = 0
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5) = "0"
+        End If
     End Sub
 
     Private Sub width_TextChanged(sender As Object, e As EventArgs) Handles Owidth.TextChanged
-        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3) = Owidth.Text
+        Dim intobj As Integer
+        If Integer.TryParse(Owidth.Text, intobj) Then
+            If Int(Owidth.Text) >= 0 Then
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3) = Owidth.Text
+            Else
+                Owidth.Text = 0
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3) = "0"
+            End If
+        Else
+            Owidth.Text = 0
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3) = "0"
+        End If
     End Sub
 
     Private Sub height_TextChanged(sender As Object, e As EventArgs) Handles Oheight.TextChanged
-        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4) = Oheight.Text
+        Dim intobj As Integer
+        If Integer.TryParse(Oheight.Text, intobj) Then
+            If Int(Oheight.Text) >= 0 Then
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4) = Oheight.Text
+            Else
+                Oheight.Text = 0
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4) = "0"
+            End If
+        Else
+            Oheight.Text = 0
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4) = "0"
+        End If
+    End Sub
+
+    Private Sub TextureName_TextChanged(sender As Object, e As EventArgs) Handles TextureName.TextChanged
+        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(11) = TextureName.Text
+    End Sub
+
+    Private Sub AddObject_MouseHover(sender As Object, e As EventArgs) Handles AddObject.MouseHover
+        AddObject.BackColor = Color.DodgerBlue
+    End Sub
+
+    Private Sub Button1_MouseHover(sender As Object, e As EventArgs) Handles Button1.MouseHover
+        Button1.BackColor = Color.DodgerBlue
+    End Sub
+
+    Private Sub Button1_MouseLeave(sender As Object, e As EventArgs) Handles Button1.MouseLeave
+        Button1.BackColor = Color.DimGray
+    End Sub
+
+    Private Sub AddObject_MouseLeave(sender As Object, e As EventArgs) Handles AddObject.MouseLeave
+        AddObject.BackColor = Color.DimGray
     End Sub
 End Class
