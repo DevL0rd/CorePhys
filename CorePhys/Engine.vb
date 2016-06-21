@@ -88,15 +88,23 @@ Module Engine
                     End If
 
                 End If
-                If Debug = True Then
-                    G.DrawRectangle(Pens.Red, New Rectangle(x, y, w, h))
-                    G.DrawString(MaxTicks, Form1.Font, Brushes.Red, New Point(1, 1))
-                    G.DrawString("X=" & x & " Y=" & y, Form1.Font, Brushes.Blue, New Point(x + 1, y + 1))
-                    G.DrawString("X=" & MouseX & " Y=" & MouseY, Form1.Font, Brushes.Green, New Point(MouseX + 1, MouseY + 1))
+                If Debug Then
+                    If Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(10) Then
+                        G.DrawRectangle(Pens.Red, New Rectangle(x, y, w, h))
+                    Else
+                        G.DrawRectangle(Pens.Blue, New Rectangle(x, y, w, h))
+                    End If
+
+                    G.DrawString("X=" & x & " Y=" & y, Form1.Font, Brushes.White, New Point(x + 1, y + 1))
+                    G.DrawString("L=" & index, Form1.Font, Brushes.White, New Point(x + 1, y + 10))
+                    G.DrawString("C=" & Memory.Item("Test.CP").Item("Rectangles").Item(index).Item(9), Form1.Font, Brushes.White, New Point(x + 1, y + 20))
                 End If
             End If
             index += 1
         End While
+        If Debug Then
+            G.DrawString(MaxTicks, Form1.Font, Brushes.Red, New Point(1, 1))
+        End If
         ' DRAW BUFFER TO SCREEN
         G = Graphics.FromImage(BB)
         BBG = Form1.CreateGraphics
