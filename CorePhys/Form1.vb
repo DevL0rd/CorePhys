@@ -1,4 +1,6 @@
-﻿Public Class Form1
+﻿Imports System.ComponentModel
+
+Public Class Form1
     Private OldPosX As Double = Me.Location.X
     Private OldPosY As Double = Me.Location.Y
     Private BlinkRate As Integer = 5000
@@ -214,5 +216,9 @@
         newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(16))
         Memory.Item("Test.CP").Item("Rectangles").Add(newobj)
         RightClickMenu.Visible = False
+    End Sub
+
+    Private Sub Form1_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
+        Engine.IsRunning = False
     End Sub
 End Class

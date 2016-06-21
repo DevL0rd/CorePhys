@@ -7,21 +7,19 @@ Module Engine
     Private BBG As Graphics
     Private BB As Bitmap
     ' FPS COUNTER
-    Private tSec As Integer = TimeOfDay.Second
-    Private tTicks As Integer = 0
-    Private PhysDelay As Double = 20
+    Public tSec As Integer = TimeOfDay.Second
+    Public tTicks As Integer = 0
+    Public PhysDelay As Double = 20
     Public MaxTicks As Integer = 0
-    Dim IsRunning As Boolean = False
-    Private physthread As Thread
+    Public IsRunning As Boolean = False
     Public Memory As New Dictionary(Of String, Dictionary(Of String, List(Of List(Of String))))
-    Private BIN As String = Application.StartupPath & "\BIN\"
-    Private GlobalForceX As Double = 0
-    Private GlobalForceY As Double = 0
-    Private GlobalFriction As Double = 1
+    Public BIN As String = Application.StartupPath & "\BIN\"
+    Public GlobalForceX As Double = 0
+    Public GlobalForceY As Double = 0
+    Public GlobalFriction As Double = 1
     Public PlayerRectName As String = "Player"
     Public Debug As Boolean = True
-    Dim WithEvents GraphicsTimer As Timer
-    Dim PhysSync As New Object
+    Public WithEvents GraphicsTimer As Timer
     Public ClickedRectID As Integer = 0
     Public LeftClicking As Boolean = False
     Public RightClicking As Boolean = False
@@ -35,15 +33,8 @@ Module Engine
         BB = New Bitmap(Form1.Width, Form1.Height)
     End Sub
     Sub EngineLoop()
-        'Initialize threads
-        physthread = New Thread(AddressOf PhysicsThread)
-        physthread.IsBackground = True
         IsRunning = True
-
-        'GraphicsTimer.Enabled = True
         InitGraphics()
-        'Start Threads
-        'physthread.Start(PhysDelay)
         Do While IsRunning
             'AI()
             Application.DoEvents()
@@ -51,7 +42,6 @@ Module Engine
             PhysicsThread(0)
             DrawGraphics()
         Loop
-        'physthread.Abort()
     End Sub
     Private Sub DrawGraphics()
         'rect drawing
@@ -294,11 +284,6 @@ Module Engine
             rectcount -= 1
         End While
         Memory.Item("Test.CP").Item("Rectangles") = RectList
-        ''depricated code for threading
-        'SyncLock PhysSync
-        'Memory.Item("Test.CP").Item("Rectangles") = RectList
-        'End SyncLock
-        'Thread.Sleep(SleepVal)
     End Sub
 
 
