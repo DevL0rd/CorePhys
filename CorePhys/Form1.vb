@@ -2,12 +2,13 @@
     Private OldPosX As Double = Me.Location.X
     Private OldPosY As Double = Me.Location.Y
     Private BlinkRate As Integer = 5000
-
+    Private CopiedObj As Integer = -1
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Show()
         PlayerBlink.Enabled = True
         PlayerBlink.Interval = BlinkRate
         PlayerBlink.Start()
+        'RightClickMenu.BackColor = Color.FromArgb(80, 0, 0, 0)
         Engine.Load("Test.CP")
     End Sub
 
@@ -181,5 +182,37 @@
 
     Private Sub AddObject_MouseLeave(sender As Object, e As EventArgs) Handles AddObject.MouseLeave
         AddObject.BackColor = Color.DimGray
+    End Sub
+
+    Private Sub Oname_TextChanged(sender As Object, e As EventArgs) Handles Oname.TextChanged
+        Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(0) = Oname.Text
+    End Sub
+
+    Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        CopiedObj = ClickedRectID
+        RightClickMenu.Visible = False
+    End Sub
+
+    Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
+        Dim newobj As New List(Of String)
+        newobj.Add("CopiedOBJ-" & Memory.Item("Test.CP").Item("Rectangles").Count())
+        newobj.Add(RightClickMenu.Location.X)
+        newobj.Add(RightClickMenu.Location.Y)
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(3))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(4))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(5))
+        newobj.Add(0)
+        newobj.Add(0)
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(8))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(9))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(10))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(11))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(12))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(13))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(14))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(15))
+        newobj.Add(Memory.Item("Test.CP").Item("Rectangles").Item(CopiedObj).Item(16))
+        Memory.Item("Test.CP").Item("Rectangles").Add(newobj)
+        RightClickMenu.Visible = False
     End Sub
 End Class

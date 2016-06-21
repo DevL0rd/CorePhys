@@ -48,17 +48,15 @@ Module Engine
             'AI()
             Application.DoEvents()
             HandleInput()
-            Application.DoEvents()
             PhysicsThread(0)
             DrawGraphics()
-            Application.DoEvents()
         Loop
         'physthread.Abort()
     End Sub
     Private Sub DrawGraphics()
         'rect drawing
         Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
-        Dim index As Integer = 1
+        Dim index As Integer = 0
         Dim name As String
         Dim x As Double
         Dim y As Double
@@ -197,6 +195,8 @@ Module Engine
                         RectList.Item(rectcount).Item(7) += Friction
                     End If
                 End If
+                Dim collidedrect_X_ID As Integer = 0
+                Dim collidedrect_Y_ID As Integer = 0
                 'if the objected moved calculate collisions.
                 If Not nY = 0 Or Not nX = 0 Then
                     w = RectList.Item(rectcount).Item(3)
@@ -210,32 +210,78 @@ Module Engine
                         rectycollide = False
                         While rectcount2 >= 0
                             If Not rectcount = rectcount2 Then
-                                x2 = RectList.Item(rectcount2).Item(1)
-                                y2 = RectList.Item(rectcount2).Item(2)
-                                w2 = RectList.Item(rectcount2).Item(3)
-                                h2 = RectList.Item(rectcount2).Item(4)
-                                rect2 = New Rectangle(x2, y2, w2, h2)
-                                Collidable2 = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount2).Item(9)
+                                Collidable2 = RectList.Item(rectcount2).Item(9)
                                 If Collidable2 Then
+                                    x2 = RectList.Item(rectcount2).Item(1)
+                                    y2 = RectList.Item(rectcount2).Item(2)
+                                    w2 = RectList.Item(rectcount2).Item(3)
+                                    h2 = RectList.Item(rectcount2).Item(4)
+                                    rect2 = New Rectangle(x2, y2, w2, h2)
                                     If rect1x.IntersectsWith(rect2) Then
                                         rectxcollide = True
+                                        collidedrect_X_ID = rectcount2
                                     End If
                                     If rect1y.IntersectsWith(rect2) Then
                                         rectycollide = True
+                                        collidedrect_Y_ID = rectcount2
                                     End If
                                 End If
                             End If
                             rectcount2 -= 1
                         End While
                         If rectxcollide Then
-                            RectList.Item(rectcount).Item(1) = x
-                            RectList.Item(rectcount).Item(6) = 0
+                            x2 = RectList.Item(collidedrect_X_ID).Item(1)
+                            y2 = RectList.Item(collidedrect_X_ID).Item(2)
+                            w2 = RectList.Item(collidedrect_X_ID).Item(3)
+                            h2 = RectList.Item(collidedrect_X_ID).Item(4)
+                            If RectList.Item(collidedrect_X_ID).Item(10) Then
+                                If nX < x2 Then
+                                    RectList.Item(rectcount).Item(1) = x2 - w
+                                    RectList.Item(rectcount).Item(6) -= 1
+                                    RectList.Item(collidedrect_X_ID).Item(6) = Int(RectList.Item(rectcount).Item(6)) + 1
+                                ElseIf nX > x2 Then
+                                    RectList.Item(rectcount).Item(1) = x2 + w2
+                                    RectList.Item(rectcount).Item(6) += 1
+                                    RectList.Item(collidedrect_X_ID).Item(6) = Int(RectList.Item(rectcount).Item(6)) - 1
+                                End If
+                            Else
+                                If nX < x2 Then
+                                    RectList.Item(rectcount).Item(1) = x2 - w
+                                    RectList.Item(rectcount).Item(6) = -Int(RectList.Item(rectcount).Item(6)) - 1
+                                ElseIf nX > x2 Then
+                                    RectList.Item(rectcount).Item(1) = x2 + w2
+                                    RectList.Item(rectcount).Item(6) = +Int(RectList.Item(rectcount).Item(6)) + 1
+                                End If
+
+                            End If
                         Else
                             RectList.Item(rectcount).Item(1) = nX
                         End If
                         If rectycollide Then
-                            RectList.Item(rectcount).Item(2) = y
-                            RectList.Item(rectcount).Item(7) = 0
+                            x2 = RectList.Item(collidedrect_Y_ID).Item(1)
+                            y2 = RectList.Item(collidedrect_Y_ID).Item(2)
+                            w2 = RectList.Item(collidedrect_Y_ID).Item(3)
+                            h2 = RectList.Item(collidedrect_Y_ID).Item(4)
+                            If RectList.Item(collidedrect_Y_ID).Item(10) Then
+                                If nY < y2 Then
+                                    RectList.Item(rectcount).Item(2) = y2 - h
+                                    RectList.Item(rectcount).Item(7) -= 1
+                                    RectList.Item(collidedrect_Y_ID).Item(7) = Int(RectList.Item(rectcount).Item(7)) + 1
+                                ElseIf nY > y2 Then
+                                    RectList.Item(rectcount).Item(2) = y2 + h2
+                                    RectList.Item(rectcount).Item(7) += 1
+                                    RectList.Item(collidedrect_Y_ID).Item(7) = Int(RectList.Item(rectcount).Item(7)) - 1
+                                End If
+                            Else
+                                If nY < y2 Then
+                                    RectList.Item(rectcount).Item(2) = y2 - h
+                                    RectList.Item(rectcount).Item(7) = -Int(RectList.Item(rectcount).Item(7)) - 1
+                                ElseIf nY > y2 Then
+                                    RectList.Item(rectcount).Item(2) = y2 + h2
+                                    RectList.Item(rectcount).Item(7) = +Int(RectList.Item(rectcount).Item(7)) + 1
+                                End If
+
+                            End If
                         Else
                             RectList.Item(rectcount).Item(2) = nY
                         End If
@@ -247,6 +293,7 @@ Module Engine
             End If
             rectcount -= 1
         End While
+        Memory.Item("Test.CP").Item("Rectangles") = RectList
         ''depricated code for threading
         'SyncLock PhysSync
         'Memory.Item("Test.CP").Item("Rectangles") = RectList
@@ -359,6 +406,8 @@ Module Engine
         writeIni(File, "Rectangles", "NodeIndex", Memory.Item("Test.CP").Item("Rectangles").Count)
     End Sub
     Function HandleMouseClick(Mouse As MouseEventArgs)
+        LeftClicking = False
+        RightClicking = False
         If Mouse.Button = MouseButtons.Left Then
             LeftClicking = True
             Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
@@ -368,7 +417,7 @@ Module Engine
             Dim rh As Long
             Dim clickrect As Rectangle = New Rectangle(Mouse.X, Mouse.Y, 1, 1)
             Dim testedrect As Rectangle
-            While rectcount > 0
+            While rectcount >= 0
                 rx = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(1)
                 ry = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(2)
                 rw = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(3)
@@ -376,7 +425,7 @@ Module Engine
                 testedrect = New Rectangle(rx, ry, rw, rh)
                 If clickrect.IntersectsWith(testedrect) Then
                     ClickedRectID = rectcount
-                    rectcount = 0
+                    rectcount = -1
                 End If
                 rectcount -= 1
             End While
@@ -386,8 +435,8 @@ Module Engine
     Function HandleMouseRelease(Mouse As MouseEventArgs)
         LeftClicking = False
         RightClicking = False
+        ClickedRectID = -1
         If Mouse.Button = MouseButtons.Right Then
-
             Dim rectcount As Integer = Memory.Item("Test.CP").Item("Rectangles").Count - 1
             Dim rx As Long
             Dim ry As Long
@@ -395,7 +444,7 @@ Module Engine
             Dim rh As Long
             Dim clickrect As Rectangle = New Rectangle(Mouse.X, Mouse.Y, 1, 1)
             Dim testedrect As Rectangle
-            While rectcount > 0
+            While rectcount >= 0
                 rx = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(1)
                 ry = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(2)
                 rw = Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Item(3)
@@ -403,26 +452,31 @@ Module Engine
                 testedrect = New Rectangle(rx, ry, rw, rh)
                 If clickrect.IntersectsWith(testedrect) Then
                     ClickedRectID = rectcount
-                    rectcount = 0
+                    rectcount = -1
                 End If
                 rectcount -= 1
             End While
-
-            If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(10) = "True" Then
-                Form1.ismoveable.Checked = True
+            If ClickedRectID >= 0 Then
+                If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(10) = "True" Then
+                    Form1.ismoveable.Checked = True
+                Else
+                    Form1.ismoveable.Checked = False
+                End If
+                If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(9) = "True" Then
+                    Form1.cancollide.Checked = True
+                Else
+                    Form1.cancollide.Checked = False
+                End If
+                Form1.Oname.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(0)
+                Form1.mass.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5)
+                Form1.Owidth.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3)
+                Form1.Oheight.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4)
+                Form1.TextureName.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(11)
+                Form1.RightClickMenu.Size = Form1.RightClickMenu.MaximumSize
             Else
-                Form1.ismoveable.Checked = False
-            End If
-            If Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(9) = "True" Then
-                Form1.cancollide.Checked = True
-            Else
-                Form1.cancollide.Checked = False
+                Form1.RightClickMenu.Size = Form1.RightClickMenu.MinimumSize
             End If
 
-            Form1.mass.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(5)
-            Form1.Owidth.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3)
-            Form1.Oheight.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4)
-            Form1.TextureName.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(11)
             Form1.RightClickMenu.Location = New Point(Mouse.X, Mouse.Y)
             If Form1.RightClickMenu.Size.Width + Form1.RightClickMenu.Location.X > Form1.Width - 17 Then
                 Form1.RightClickMenu.Location = New Point((Form1.Width - 17) - (Form1.RightClickMenu.Size.Width + 1), Form1.RightClickMenu.Location.Y)
@@ -434,6 +488,7 @@ Module Engine
             ElseIf Form1.RightClickMenu.Location.Y < 1 Then
                 Form1.RightClickMenu.Location = New Point(Form1.RightClickMenu.Location.X, 1)
             End If
+
             Form1.RightClickMenu.Visible = True
         End If
         Return 0
@@ -505,19 +560,19 @@ Module Engine
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("NewRect-" & rectcount)
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(Form1.RightClickMenu.Location.X)
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(Form1.RightClickMenu.Location.Y)
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("30")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("30")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(30)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(30)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(0)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(0)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(0)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(0)
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("True")
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("False")
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("none")
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("down")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("1")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("5")
-        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("0")
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(1)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(5)
+        Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add(0)
         Memory.Item("Test.CP").Item("Rectangles").Item(rectcount).Add("none")
     End Sub
 
