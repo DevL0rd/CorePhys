@@ -41,6 +41,8 @@ Partial Class Form1
         Me.Oname = New System.Windows.Forms.TextBox()
         Me.Label4 = New System.Windows.Forms.Label()
         Me.TextureName = New System.Windows.Forms.TextBox()
+        Me.Label6 = New System.Windows.Forms.Label()
+        Me.Ofriction = New System.Windows.Forms.TextBox()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -174,6 +176,8 @@ Partial Class Form1
         '
         Me.RightClickMenu.Anchor = System.Windows.Forms.AnchorStyles.None
         Me.RightClickMenu.BackColor = System.Drawing.SystemColors.ControlDarkDark
+        Me.RightClickMenu.Controls.Add(Me.Label6)
+        Me.RightClickMenu.Controls.Add(Me.Ofriction)
         Me.RightClickMenu.Controls.Add(Me.Button3)
         Me.RightClickMenu.Controls.Add(Me.Button2)
         Me.RightClickMenu.Controls.Add(Me.label5)
@@ -273,6 +277,28 @@ Partial Class Form1
         Me.TextureName.Size = New System.Drawing.Size(180, 23)
         Me.TextureName.TabIndex = 10
         '
+        'Label6
+        '
+        Me.Label6.AutoSize = True
+        Me.Label6.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Label6.ForeColor = System.Drawing.Color.White
+        Me.Label6.Location = New System.Drawing.Point(119, 423)
+        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label6.Name = "Label6"
+        Me.Label6.Size = New System.Drawing.Size(17, 17)
+        Me.Label6.TabIndex = 17
+        Me.Label6.Text = "F"
+        '
+        'Ofriction
+        '
+        Me.Ofriction.BackColor = System.Drawing.SystemColors.ScrollBar
+        Me.Ofriction.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Ofriction.Location = New System.Drawing.Point(146, 417)
+        Me.Ofriction.Margin = New System.Windows.Forms.Padding(4, 5, 4, 5)
+        Me.Ofriction.Name = "Ofriction"
+        Me.Ofriction.Size = New System.Drawing.Size(54, 23)
+        Me.Ofriction.TabIndex = 16
+        '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(9.0!, 20.0!)
@@ -307,4 +333,6 @@ Partial Class Form1
     Friend WithEvents TextureName As TextBox
     Friend WithEvents Button3 As Button
     Friend WithEvents Button2 As Button
+    Friend WithEvents Label6 As Label
+    Friend WithEvents Ofriction As TextBox
 End Class

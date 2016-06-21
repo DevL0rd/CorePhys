@@ -465,6 +465,7 @@ Module Engine
                 Form1.Owidth.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(3)
                 Form1.Oheight.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(4)
                 Form1.TextureName.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(11)
+                Form1.Ofriction.Text = Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8)
                 Form1.RightClickMenu.Size = Form1.RightClickMenu.MaximumSize
             Else
                 Form1.RightClickMenu.Size = Form1.RightClickMenu.MinimumSize

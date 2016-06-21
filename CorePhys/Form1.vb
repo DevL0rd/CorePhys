@@ -221,4 +221,23 @@ Public Class Form1
     Private Sub Form1_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
         Engine.IsRunning = False
     End Sub
+
+    Private Sub Ofriction_TextChanged(sender As Object, e As EventArgs) Handles Ofriction.TextChanged
+
+    End Sub
+
+    Private Sub Ofriction_LostFocus(sender As Object, e As EventArgs) Handles Ofriction.LostFocus
+        Dim intobj As Double
+        If Integer.TryParse(Ofriction.Text, intobj) Then
+            If Convert.ToDouble(Ofriction.Text) >= 0 Then
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = Ofriction.Text
+            Else
+                Ofriction.Text = 0
+                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = "0"
+            End If
+        Else
+            Ofriction.Text = 0
+            Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = "0"
+        End If
+    End Sub
 End Class
