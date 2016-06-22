@@ -222,15 +222,15 @@ Public Class Form1
         Engine.IsRunning = False
     End Sub
 
-    Private Sub Ofriction_TextChanged(sender As Object, e As EventArgs) Handles Ofriction.TextChanged
-
-    End Sub
-
     Private Sub Ofriction_LostFocus(sender As Object, e As EventArgs) Handles Ofriction.LostFocus
-        Dim intobj As Double
+        Dim intobj As Integer
         If Integer.TryParse(Ofriction.Text, intobj) Then
-            If Convert.ToDouble(Ofriction.Text) >= 0 Then
-                Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = Ofriction.Text
+            If Int(Ofriction.Text) >= 0 Then
+                If Int(Ofriction.Text) < 10 Then
+                    Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = "0.0" & Ofriction.Text
+                Else
+                    Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = "0." & Ofriction.Text
+                End If
             Else
                 Ofriction.Text = 0
                 Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = "0"
@@ -239,5 +239,85 @@ Public Class Form1
             Ofriction.Text = 0
             Memory.Item("Test.CP").Item("Rectangles").Item(ClickedRectID).Item(8) = "0"
         End If
+    End Sub
+
+    Private Sub Button3_MouseHover(sender As Object, e As EventArgs) Handles Button3.MouseHover
+        Button3.BackColor = Color.DodgerBlue
+    End Sub
+
+    Private Sub Button3_MouseLeave(sender As Object, e As EventArgs) Handles Button3.MouseLeave
+        Button3.BackColor = Color.DimGray
+    End Sub
+
+    Private Sub Button2_MouseHover(sender As Object, e As EventArgs) Handles Button2.MouseHover
+        Button2.BackColor = Color.DodgerBlue
+    End Sub
+
+    Private Sub Button2_MouseLeave(sender As Object, e As EventArgs) Handles Button2.MouseLeave
+        Button3.BackColor = Color.DimGray
+    End Sub
+
+    Private Sub ismoveable_MouseHover(sender As Object, e As EventArgs) Handles ismoveable.MouseHover
+        ismoveable.ForeColor = Color.DodgerBlue
+    End Sub
+
+    Private Sub ismoveable_MouseLeave(sender As Object, e As EventArgs) Handles ismoveable.MouseLeave
+        ismoveable.ForeColor = Color.White
+    End Sub
+
+    Private Sub cancollide_MouseHover(sender As Object, e As EventArgs) Handles cancollide.MouseHover
+        cancollide.ForeColor = Color.DodgerBlue
+    End Sub
+
+    Private Sub cancollide_MouseLeave(sender As Object, e As EventArgs) Handles cancollide.MouseLeave
+        cancollide.ForeColor = Color.White
+    End Sub
+
+    Private Sub Oname_MouseHover(sender As Object, e As EventArgs) Handles Oname.MouseHover
+        Oname.BackColor = Color.LightBlue
+    End Sub
+
+    Private Sub Oname_MouseLeave(sender As Object, e As EventArgs) Handles Oname.MouseLeave
+        Oname.BackColor = Color.Silver
+    End Sub
+
+    Private Sub TextureName_MouseHover(sender As Object, e As EventArgs) Handles TextureName.MouseHover
+        TextureName.BackColor = Color.LightBlue
+    End Sub
+
+    Private Sub TextureName_MouseLeave(sender As Object, e As EventArgs) Handles TextureName.MouseLeave
+        TextureName.BackColor = Color.Silver
+    End Sub
+
+    Private Sub mass_MouseHover(sender As Object, e As EventArgs) Handles mass.MouseHover
+        mass.BackColor = Color.LightBlue
+    End Sub
+
+    Private Sub mass_MouseLeave(sender As Object, e As EventArgs) Handles mass.MouseLeave
+        mass.BackColor = Color.Silver
+    End Sub
+
+    Private Sub Ofriction_MouseHover(sender As Object, e As EventArgs) Handles Ofriction.MouseHover
+        Ofriction.BackColor = Color.LightBlue
+    End Sub
+
+    Private Sub Ofriction_MouseLeave(sender As Object, e As EventArgs) Handles Ofriction.MouseLeave
+        Ofriction.BackColor = Color.Silver
+    End Sub
+
+    Private Sub Owidth_MouseHover(sender As Object, e As EventArgs) Handles Owidth.MouseHover
+        Owidth.BackColor = Color.LightBlue
+    End Sub
+
+    Private Sub Owidth_MouseLeave(sender As Object, e As EventArgs) Handles Owidth.MouseLeave
+        Owidth.BackColor = Color.Silver
+    End Sub
+
+    Private Sub Oheight_MouseHover(sender As Object, e As EventArgs) Handles Oheight.MouseHover
+        Oheight.BackColor = Color.LightBlue
+    End Sub
+
+    Private Sub Oheight_MouseLeave(sender As Object, e As EventArgs) Handles Oheight.MouseLeave
+        Oheight.BackColor = Color.Silver
     End Sub
 End Class

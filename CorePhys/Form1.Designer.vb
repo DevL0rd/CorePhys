@@ -35,14 +35,14 @@ Partial Class Form1
         Me.Oheight = New System.Windows.Forms.TextBox()
         Me.Label3 = New System.Windows.Forms.Label()
         Me.RightClickMenu = New System.Windows.Forms.Panel()
+        Me.Label6 = New System.Windows.Forms.Label()
+        Me.Ofriction = New System.Windows.Forms.TextBox()
         Me.Button3 = New System.Windows.Forms.Button()
         Me.Button2 = New System.Windows.Forms.Button()
         Me.label5 = New System.Windows.Forms.Label()
         Me.Oname = New System.Windows.Forms.TextBox()
         Me.Label4 = New System.Windows.Forms.Label()
         Me.TextureName = New System.Windows.Forms.TextBox()
-        Me.Label6 = New System.Windows.Forms.Label()
-        Me.Ofriction = New System.Windows.Forms.TextBox()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -203,6 +203,28 @@ Partial Class Form1
         Me.RightClickMenu.TabIndex = 0
         Me.RightClickMenu.Visible = False
         '
+        'Label6
+        '
+        Me.Label6.AutoSize = True
+        Me.Label6.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Label6.ForeColor = System.Drawing.Color.White
+        Me.Label6.Location = New System.Drawing.Point(119, 423)
+        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label6.Name = "Label6"
+        Me.Label6.Size = New System.Drawing.Size(17, 17)
+        Me.Label6.TabIndex = 17
+        Me.Label6.Text = "F"
+        '
+        'Ofriction
+        '
+        Me.Ofriction.BackColor = System.Drawing.SystemColors.ScrollBar
+        Me.Ofriction.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Ofriction.Location = New System.Drawing.Point(146, 417)
+        Me.Ofriction.Margin = New System.Windows.Forms.Padding(4, 5, 4, 5)
+        Me.Ofriction.Name = "Ofriction"
+        Me.Ofriction.Size = New System.Drawing.Size(54, 23)
+        Me.Ofriction.TabIndex = 16
+        '
         'Button3
         '
         Me.Button3.BackColor = System.Drawing.Color.DimGray
@@ -276,28 +298,6 @@ Partial Class Form1
         Me.TextureName.Name = "TextureName"
         Me.TextureName.Size = New System.Drawing.Size(180, 23)
         Me.TextureName.TabIndex = 10
-        '
-        'Label6
-        '
-        Me.Label6.AutoSize = True
-        Me.Label6.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label6.ForeColor = System.Drawing.Color.White
-        Me.Label6.Location = New System.Drawing.Point(119, 423)
-        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label6.Name = "Label6"
-        Me.Label6.Size = New System.Drawing.Size(17, 17)
-        Me.Label6.TabIndex = 17
-        Me.Label6.Text = "F"
-        '
-        'Ofriction
-        '
-        Me.Ofriction.BackColor = System.Drawing.SystemColors.ScrollBar
-        Me.Ofriction.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Ofriction.Location = New System.Drawing.Point(146, 417)
-        Me.Ofriction.Margin = New System.Windows.Forms.Padding(4, 5, 4, 5)
-        Me.Ofriction.Name = "Ofriction"
-        Me.Ofriction.Size = New System.Drawing.Size(54, 23)
-        Me.Ofriction.TabIndex = 16
         '
         'Form1
         '
