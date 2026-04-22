@@ -44,7 +44,8 @@ typedef enum b2ParticleRangeTaskType
 	b2_particleTaskLimitVelocities,
 	b2_particleTaskSolveBarrierWalls,
 	b2_particleTaskSolveWalls,
-	b2_particleTaskIntegrate
+	b2_particleTaskIntegrate,
+	b2_particleTaskResetStuckState
 } b2ParticleRangeTaskType;
 
 typedef struct b2ParticleRangeTaskContext
@@ -329,6 +330,22 @@ typedef struct b2ParticleBodyCollisionQueryContext
 	b2ShapeId bestShapeId;
 } b2ParticleBodyCollisionQueryContext;
 
+typedef enum b2ParticleStuckCandidateTaskType
+{
+	b2_particleStuckCandidateTaskCount,
+	b2_particleStuckCandidateTaskWrite
+} b2ParticleStuckCandidateTaskType;
+
+typedef struct b2ParticleStuckCandidateTaskContext
+{
+	b2ParticleSystem* system;
+	b2ParticleStuckCandidateTaskType type;
+	int blockSize;
+	int* blockCounts;
+	const int* blockOffsets;
+	int* candidates;
+} b2ParticleStuckCandidateTaskContext;
+
 typedef struct b2ParticleShapeCandidateQueryContext
 {
 	b2World* world;
@@ -394,6 +411,10 @@ typedef struct b2ParticleCoreBuffers
 	float* depths;
 	b2Vec2* accumulationVectors;
 	int* groupIndices;
+	int* handleIndices;
+	int* lastBodyContactSteps;
+	int* bodyContactCounts;
+	int* consecutiveContactSteps;
 } b2ParticleCoreBuffers;
 
 typedef struct b2ParticleCompactionTaskContext
@@ -672,14 +693,25 @@ static void b2ParticleRangeTask( int startIndex, int endIndex, uint32_t workerIn
 			}
 			break;
 
-		case b2_particleTaskIntegrate:
-			for ( int i = startIndex; i < endIndex; ++i )
-			{
-				system->positions[i] = b2MulAdd( system->positions[i], context->dt, system->velocities[i] );
-			}
-			break;
+			case b2_particleTaskIntegrate:
+				for ( int i = startIndex; i < endIndex; ++i )
+				{
+					system->positions[i] = b2MulAdd( system->positions[i], context->dt, system->velocities[i] );
+				}
+				break;
+
+			case b2_particleTaskResetStuckState:
+				for ( int i = startIndex; i < endIndex; ++i )
+				{
+					system->bodyContactCounts[i] = 0;
+					if ( system->timestamp > system->lastBodyContactSteps[i] + 1 )
+					{
+						system->consecutiveContactSteps[i] = 0;
+					}
+				}
+				break;
+		}
 	}
-}
 
 static void b2RunParticleRangeTask( b2World* world, b2ParticleRangeTaskContext* context, int itemCount )
 {
@@ -720,7 +752,55 @@ static void b2ReserveParticles( b2ParticleSystem* system, int capacity )
 	system->depths = b2GrowParticleBuffer( system->depths, oldCapacity, newCapacity, sizeof( float ) );
 	system->accumulationVectors = b2GrowParticleBuffer( system->accumulationVectors, oldCapacity, newCapacity, sizeof( b2Vec2 ) );
 	system->groupIndices = b2GrowParticleBuffer( system->groupIndices, oldCapacity, newCapacity, sizeof( int ) );
+	system->handleIndices = b2GrowParticleBuffer( system->handleIndices, oldCapacity, newCapacity, sizeof( int ) );
+	if ( system->lastBodyContactSteps != NULL || system->stuckThreshold > 0 )
+	{
+		system->lastBodyContactSteps = b2GrowParticleBuffer( system->lastBodyContactSteps, oldCapacity, newCapacity, sizeof( int ) );
+		system->bodyContactCounts = b2GrowParticleBuffer( system->bodyContactCounts, oldCapacity, newCapacity, sizeof( int ) );
+		system->consecutiveContactSteps =
+			b2GrowParticleBuffer( system->consecutiveContactSteps, oldCapacity, newCapacity, sizeof( int ) );
+	}
+	for ( int i = oldCapacity; i < newCapacity; ++i )
+	{
+		system->handleIndices[i] = B2_NULL_INDEX;
+		if ( system->lastBodyContactSteps != NULL )
+		{
+			system->lastBodyContactSteps[i] = 0;
+			system->bodyContactCounts[i] = 0;
+			system->consecutiveContactSteps[i] = 0;
+		}
+	}
 	system->particleCapacity = newCapacity;
+}
+
+static void b2ReserveParticleStuckState( b2ParticleSystem* system, int capacity )
+{
+	if ( capacity <= system->particleCapacity && system->lastBodyContactSteps != NULL )
+	{
+		return;
+	}
+
+	int oldCapacity = system->lastBodyContactSteps != NULL ? system->particleCapacity : 0;
+	int newCapacity = system->particleCapacity;
+	if ( capacity > newCapacity )
+	{
+		newCapacity = b2MaxParticleCapacity( system->particleCapacity, capacity );
+	}
+	if ( newCapacity <= oldCapacity )
+	{
+		return;
+	}
+
+	system->lastBodyContactSteps = b2GrowParticleBuffer( system->lastBodyContactSteps, oldCapacity, newCapacity, sizeof( int ) );
+	system->bodyContactCounts = b2GrowParticleBuffer( system->bodyContactCounts, oldCapacity, newCapacity, sizeof( int ) );
+	system->consecutiveContactSteps =
+		b2GrowParticleBuffer( system->consecutiveContactSteps, oldCapacity, newCapacity, sizeof( int ) );
+	for ( int i = oldCapacity; i < newCapacity; ++i )
+	{
+		system->lastBodyContactSteps[i] = 0;
+		system->bodyContactCounts[i] = 0;
+		system->consecutiveContactSteps[i] = 0;
+	}
 }
 
 static void b2ReserveProxies( b2ParticleSystem* system, int capacity )
@@ -1631,6 +1711,13 @@ static b2ParticleCoreBuffers b2AllocateParticleCoreBuffers( b2ParticleSystem* sy
 		.depths = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, float ),
 		.accumulationVectors = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, b2Vec2 ),
 		.groupIndices = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, int ),
+		.handleIndices = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, int ),
+		.lastBodyContactSteps =
+			system->lastBodyContactSteps != NULL ? b2ParticleScratchBuffer_AllocArray( &system->scratch, count, int ) : NULL,
+		.bodyContactCounts =
+			system->bodyContactCounts != NULL ? b2ParticleScratchBuffer_AllocArray( &system->scratch, count, int ) : NULL,
+		.consecutiveContactSteps =
+			system->consecutiveContactSteps != NULL ? b2ParticleScratchBuffer_AllocArray( &system->scratch, count, int ) : NULL,
 	};
 }
 
@@ -1720,6 +1807,13 @@ static void b2ParticleCompactionTask( int startIndex, int endIndex, uint32_t wor
 					context->buffers.depths[newIndex] = system->depths[oldIndex];
 					context->buffers.accumulationVectors[newIndex] = system->accumulationVectors[oldIndex];
 					context->buffers.groupIndices[newIndex] = system->groupIndices[oldIndex];
+					context->buffers.handleIndices[newIndex] = system->handleIndices[oldIndex];
+					if ( context->buffers.lastBodyContactSteps != NULL )
+					{
+						context->buffers.lastBodyContactSteps[newIndex] = system->lastBodyContactSteps[oldIndex];
+						context->buffers.bodyContactCounts[newIndex] = system->bodyContactCounts[oldIndex];
+						context->buffers.consecutiveContactSteps[newIndex] = system->consecutiveContactSteps[oldIndex];
+					}
 				}
 			}
 			break;
@@ -1741,6 +1835,13 @@ static void b2ParticleCompactionTask( int startIndex, int endIndex, uint32_t wor
 				system->depths[i] = context->buffers.depths[i];
 				system->accumulationVectors[i] = context->buffers.accumulationVectors[i];
 				system->groupIndices[i] = context->buffers.groupIndices[i];
+				system->handleIndices[i] = context->buffers.handleIndices[i];
+				if ( context->buffers.lastBodyContactSteps != NULL )
+				{
+					system->lastBodyContactSteps[i] = context->buffers.lastBodyContactSteps[i];
+					system->bodyContactCounts[i] = context->buffers.bodyContactCounts[i];
+					system->consecutiveContactSteps[i] = context->buffers.consecutiveContactSteps[i];
+				}
 			}
 			break;
 	}
@@ -2062,6 +2163,36 @@ static void b2ReserveGroups( b2ParticleSystem* system, int capacity )
 	system->groupCapacity = newCapacity;
 }
 
+static void b2ReserveParticleHandles( b2ParticleSystem* system, int capacity )
+{
+	if ( capacity <= system->handleCapacity )
+	{
+		return;
+	}
+
+	int oldCapacity = system->handleCapacity;
+	int newCapacity = b2MaxParticleCapacity( oldCapacity, capacity );
+	system->handles = b2GrowParticleBuffer( system->handles, oldCapacity, newCapacity, sizeof( b2ParticleHandle ) );
+	for ( int i = oldCapacity; i < newCapacity; ++i )
+	{
+		system->handles[i] = (b2ParticleHandle){ .id = B2_NULL_INDEX, .particleIndex = B2_NULL_INDEX, .systemId = system->id };
+	}
+	system->handleCapacity = newCapacity;
+}
+
+static void b2ReserveStuckCandidates( b2ParticleSystem* system, int capacity )
+{
+	if ( capacity <= system->stuckCandidateCapacity )
+	{
+		return;
+	}
+
+	int oldCapacity = system->stuckCandidateCapacity;
+	int newCapacity = b2MaxParticleCapacity( oldCapacity, capacity );
+	system->stuckCandidates = b2GrowParticleBuffer( system->stuckCandidates, oldCapacity, newCapacity, sizeof( int ) );
+	system->stuckCandidateCapacity = newCapacity;
+}
+
 static void b2DestroyParticleSystemStorage( b2ParticleSystem* system )
 {
 	b2Free( system->positions, system->particleCapacity * (int)sizeof( b2Vec2 ) );
@@ -2078,6 +2209,10 @@ static void b2DestroyParticleSystemStorage( b2ParticleSystem* system )
 	b2Free( system->depths, system->particleCapacity * (int)sizeof( float ) );
 	b2Free( system->accumulationVectors, system->particleCapacity * (int)sizeof( b2Vec2 ) );
 	b2Free( system->groupIndices, system->particleCapacity * (int)sizeof( int ) );
+	b2Free( system->handleIndices, system->particleCapacity * (int)sizeof( int ) );
+	b2Free( system->lastBodyContactSteps, system->particleCapacity * (int)sizeof( int ) );
+	b2Free( system->bodyContactCounts, system->particleCapacity * (int)sizeof( int ) );
+	b2Free( system->consecutiveContactSteps, system->particleCapacity * (int)sizeof( int ) );
 	b2Free( system->proxies, system->proxyCapacity * (int)sizeof( b2ParticleProxy ) );
 	b2Free( system->contacts, system->contactCapacity * (int)sizeof( b2ParticleContactData ) );
 	b2Free( system->previousContacts, system->previousContactCapacity * (int)sizeof( b2ParticleContactData ) );
@@ -2088,9 +2223,11 @@ static void b2DestroyParticleSystemStorage( b2ParticleSystem* system )
 	b2Free( system->bodyContactBeginEvents, system->bodyContactBeginCapacity * (int)sizeof( b2ParticleBodyContactData ) );
 	b2Free( system->bodyContactEndEvents, system->bodyContactEndCapacity * (int)sizeof( b2ParticleBodyContactData ) );
 	b2Free( system->destructionEvents, system->destructionEventCapacity * (int)sizeof( b2ParticleDestructionEvent ) );
+	b2Free( system->stuckCandidates, system->stuckCandidateCapacity * (int)sizeof( int ) );
 	b2Free( system->pairs, system->pairCapacity * (int)sizeof( b2ParticlePairData ) );
 	b2Free( system->triads, system->triadCapacity * (int)sizeof( b2ParticleTriadData ) );
 	b2Free( system->groups, system->groupCapacity * (int)sizeof( b2ParticleGroup ) );
+	b2Free( system->handles, system->handleCapacity * (int)sizeof( b2ParticleHandle ) );
 	b2ParticleScratchBuffer_Destroy( &system->scratch );
 	b2DestroyParticlePayloadStorage( &system->contactBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->bodyContactBlockPayloads );
@@ -2117,10 +2254,23 @@ static void b2FreeParticleGroupIds( b2World* world, b2ParticleSystem* system )
 	}
 }
 
+static void b2FreeParticleHandleIds( b2World* world, b2ParticleSystem* system )
+{
+	for ( int i = 0; i < system->handleCount; ++i )
+	{
+		b2ParticleHandle* handle = system->handles + i;
+		if ( handle->id != B2_NULL_INDEX )
+		{
+			b2FreeId( &world->particleHandleIdPool, handle->id );
+		}
+	}
+}
+
 void b2CreateParticleWorld( b2World* world )
 {
 	world->particleSystemIdPool = b2CreateIdPool();
 	world->particleGroupIdPool = b2CreateIdPool();
+	world->particleHandleIdPool = b2CreateIdPool();
 	world->particleSystems = NULL;
 	world->particleSystemCount = 0;
 	world->particleSystemCapacity = 0;
@@ -2134,6 +2284,7 @@ void b2DestroyParticleWorld( b2World* world )
 		if ( system->id != B2_NULL_INDEX )
 		{
 			b2FreeParticleGroupIds( world, system );
+			b2FreeParticleHandleIds( world, system );
 			b2DestroyParticleSystemStorage( system );
 		}
 	}
@@ -2144,6 +2295,7 @@ void b2DestroyParticleWorld( b2World* world )
 	world->particleSystemCapacity = 0;
 	b2DestroyIdPool( &world->particleSystemIdPool );
 	b2DestroyIdPool( &world->particleGroupIdPool );
+	b2DestroyIdPool( &world->particleHandleIdPool );
 }
 
 void b2ClearParticleEvents( b2World* world )
@@ -2174,6 +2326,11 @@ static b2ParticleGroupId b2MakeParticleGroupId( b2World* world, b2ParticleSystem
 {
 	b2ParticleGroup* group = system->groups + groupId;
 	return (b2ParticleGroupId){ group->id + 1, world->worldId, group->generation };
+}
+
+static b2ParticleHandleId b2MakeParticleHandleId( b2World* world, b2ParticleHandle* handle )
+{
+	return (b2ParticleHandleId){ handle->id + 1, world->worldId, handle->generation };
 }
 
 b2ParticleSystem* b2GetParticleSystemFullId( b2World* world, b2ParticleSystemId systemId )
@@ -2271,6 +2428,44 @@ static b2ParticleGroup* b2TryGetParticleGroup( b2ParticleGroupId groupId, b2Part
 					*outSystem = system;
 				}
 				return group;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+static b2ParticleHandle* b2TryGetParticleHandle( b2ParticleHandleId handleId, b2ParticleSystem** outSystem )
+{
+	if ( handleId.index1 < 1 )
+	{
+		return NULL;
+	}
+
+	b2World* world = b2TryGetWorld( handleId.world0 );
+	if ( world == NULL )
+	{
+		return NULL;
+	}
+
+	for ( int i = 0; i < world->particleSystemCount; ++i )
+	{
+		b2ParticleSystem* system = world->particleSystems + i;
+		if ( system->id == B2_NULL_INDEX )
+		{
+			continue;
+		}
+
+		for ( int handleIndex = 0; handleIndex < system->handleCount; ++handleIndex )
+		{
+			b2ParticleHandle* handle = system->handles + handleIndex;
+			if ( handle->id == handleId.index1 - 1 && handle->generation == handleId.generation )
+			{
+				if ( outSystem != NULL )
+				{
+					*outSystem = system;
+				}
+				return handle;
 			}
 		}
 	}
@@ -2397,6 +2592,7 @@ void b2DestroyParticleSystem( b2ParticleSystemId systemId )
 
 	b2ParticleSystem* system = b2GetParticleSystemFullId( world, systemId );
 	b2FreeParticleGroupIds( world, system );
+	b2FreeParticleHandleIds( world, system );
 	b2DestroyParticleSystemStorage( system );
 	uint16_t generation = system->generation + 1;
 	int id = system->id;
@@ -2659,6 +2855,10 @@ static b2ParticleState b2ReadParticleState( const b2ParticleSystem* system, int 
 		.age = system->ages[index],
 		.depth = system->depths[index],
 		.groupIndex = system->groupIndices[index],
+		.handleIndex = system->handleIndices[index],
+		.lastBodyContactStep = system->lastBodyContactSteps != NULL ? system->lastBodyContactSteps[index] : 0,
+		.bodyContactCount = system->bodyContactCounts != NULL ? system->bodyContactCounts[index] : 0,
+		.consecutiveContactSteps = system->consecutiveContactSteps != NULL ? system->consecutiveContactSteps[index] : 0,
 	};
 }
 
@@ -2675,6 +2875,17 @@ static void b2WriteParticleState( b2ParticleSystem* system, int index, const b2P
 	system->ages[index] = state->age;
 	system->depths[index] = state->depth;
 	system->groupIndices[index] = state->groupIndex;
+	system->handleIndices[index] = state->handleIndex;
+	if ( state->handleIndex != B2_NULL_INDEX && 0 <= state->handleIndex && state->handleIndex < system->handleCount )
+	{
+		system->handles[state->handleIndex].particleIndex = index;
+	}
+	if ( system->lastBodyContactSteps != NULL )
+	{
+		system->lastBodyContactSteps[index] = state->lastBodyContactStep;
+		system->bodyContactCounts[index] = state->bodyContactCount;
+		system->consecutiveContactSteps[index] = state->consecutiveContactSteps;
+	}
 }
 
 static bool b2TryRemapParticleProxy( b2ParticleProxy proxy, const int* newIndices, int oldCount, b2ParticleProxy* remappedProxy )
@@ -3155,6 +3366,7 @@ static int b2ReorderParticlesByGroup( b2ParticleSystem* system, int targetOldInd
 	return targetNewIndex;
 }
 
+static void b2UpdateParticleHandlesAfterCompaction( b2ParticleSystem* system, const int* newIndices, int oldCount );
 static void b2EmitParticleDestructionEvent( b2ParticleSystem* system, int particleIndex );
 
 static void b2RemoveZombieParticles( b2ParticleSystem* system )
@@ -3219,6 +3431,7 @@ static void b2RemoveZombieParticles( b2ParticleSystem* system )
 			b2EmitParticleDestructionEvent( system, readIndex );
 		}
 	}
+	b2UpdateParticleHandlesAfterCompaction( system, newIndices, oldCount );
 
 	scratchTicks = b2GetTicks();
 	context.buffers = b2AllocateParticleCoreBuffers( system, writeIndex );
@@ -3300,6 +3513,32 @@ static void b2EmitParticleDestructionEvent( b2ParticleSystem* system, int partic
 	};
 }
 
+static void b2UpdateParticleHandlesAfterCompaction( b2ParticleSystem* system, const int* newIndices, int oldCount )
+{
+	for ( int oldIndex = 0; oldIndex < oldCount; ++oldIndex )
+	{
+		int handleIndex = system->handleIndices[oldIndex];
+		if ( handleIndex == B2_NULL_INDEX || handleIndex < 0 || system->handleCount <= handleIndex )
+		{
+			continue;
+		}
+
+		b2ParticleHandle* handle = system->handles + handleIndex;
+		if ( handle->id == B2_NULL_INDEX )
+		{
+			continue;
+		}
+
+		int newIndex = newIndices[oldIndex];
+		handle->particleIndex = newIndex;
+		if ( newIndex == B2_NULL_INDEX )
+		{
+			continue;
+		}
+
+	}
+}
+
 static float b2QuantizeParticleLifetime( const b2ParticleSystem* system, float lifetime );
 
 static int b2AppendParticle( b2ParticleSystem* system, const b2ParticleDef* def, int groupIndex )
@@ -3327,6 +3566,13 @@ static int b2AppendParticle( b2ParticleSystem* system, const b2ParticleDef* def,
 	system->depths[index] = 0.0f;
 	system->accumulationVectors[index] = b2Vec2_zero;
 	system->groupIndices[index] = groupIndex;
+	system->handleIndices[index] = B2_NULL_INDEX;
+	if ( system->lastBodyContactSteps != NULL )
+	{
+		system->lastBodyContactSteps[index] = 0;
+		system->bodyContactCounts[index] = 0;
+		system->consecutiveContactSteps[index] = 0;
+	}
 
 	return index;
 }
@@ -3368,15 +3614,111 @@ int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2Partic
 	return index;
 }
 
-void b2ParticleSystem_DestroyParticle( b2ParticleSystemId systemId, int particleIndex )
+static void b2ParticleSystem_DestroyParticleInternal( b2ParticleSystem* system, int particleIndex, bool callDestructionListener )
 {
-	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
 	if ( system == NULL || particleIndex < 0 || system->particleCount <= particleIndex )
 	{
 		return;
 	}
 
 	system->flags[particleIndex] |= b2_zombieParticle;
+	if ( callDestructionListener )
+	{
+		system->flags[particleIndex] |= b2_destructionListenerParticle;
+	}
+}
+
+void b2ParticleSystem_DestroyParticle( b2ParticleSystemId systemId, int particleIndex )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	b2ParticleSystem_DestroyParticleInternal( system, particleIndex, false );
+	if ( system != NULL )
+	{
+		b2RemoveZombieParticles( system );
+	}
+}
+
+b2ParticleHandleId b2ParticleSystem_GetParticleHandleFromIndex( b2ParticleSystemId systemId, int particleIndex )
+{
+	b2World* world = b2TryGetWorld( systemId.world0 );
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	if ( world == NULL || system == NULL || particleIndex < 0 || system->particleCount <= particleIndex )
+	{
+		return b2_nullParticleHandleId;
+	}
+
+	int handleIndex = system->handleIndices[particleIndex];
+	if ( handleIndex != B2_NULL_INDEX && 0 <= handleIndex && handleIndex < system->handleCount )
+	{
+		b2ParticleHandle* handle = system->handles + handleIndex;
+		if ( handle->id != B2_NULL_INDEX )
+		{
+			return b2MakeParticleHandleId( world, handle );
+		}
+	}
+
+	int handleId = b2AllocId( &world->particleHandleIdPool );
+	handleIndex = system->handleCount;
+	b2ReserveParticleHandles( system, handleIndex + 1 );
+	system->handleCount = handleIndex + 1;
+
+	b2ParticleHandle* handle = system->handles + handleIndex;
+	uint16_t generation = handle->generation + 1;
+	*handle = (b2ParticleHandle){ .id = handleId, .particleIndex = particleIndex, .systemId = system->id, .generation = generation };
+	system->handleIndices[particleIndex] = handleIndex;
+	return b2MakeParticleHandleId( world, handle );
+}
+
+bool b2ParticleHandle_IsValid( b2ParticleHandleId handleId )
+{
+	b2ParticleSystem* system = NULL;
+	b2ParticleHandle* handle = b2TryGetParticleHandle( handleId, &system );
+	return handle != NULL && system != NULL && 0 <= handle->particleIndex && handle->particleIndex < system->particleCount;
+}
+
+int b2ParticleHandle_GetIndex( b2ParticleHandleId handleId )
+{
+	b2ParticleSystem* system = NULL;
+	b2ParticleHandle* handle = b2TryGetParticleHandle( handleId, &system );
+	if ( handle == NULL || system == NULL || handle->particleIndex < 0 || system->particleCount <= handle->particleIndex )
+	{
+		return B2_NULL_INDEX;
+	}
+	return handle->particleIndex;
+}
+
+void b2ParticleSystem_DestroyOldestParticle( b2ParticleSystemId systemId, int index )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	if ( system == NULL || index < 0 || system->particleCount <= index )
+	{
+		return;
+	}
+
+	bool* skipped = b2AllocZeroInit( system->particleCount * (int)sizeof( bool ) );
+	int oldestIndex = B2_NULL_INDEX;
+	for ( int destroyCount = 0; destroyCount <= index; ++destroyCount )
+	{
+		float oldestAge = -FLT_MAX;
+		oldestIndex = B2_NULL_INDEX;
+		for ( int particleIndex = 0; particleIndex < system->particleCount; ++particleIndex )
+		{
+			if ( skipped[particleIndex] == false && system->ages[particleIndex] > oldestAge )
+			{
+				oldestAge = system->ages[particleIndex];
+				oldestIndex = particleIndex;
+			}
+		}
+		if ( oldestIndex == B2_NULL_INDEX )
+		{
+			b2Free( skipped, system->particleCount * (int)sizeof( bool ) );
+			return;
+		}
+		skipped[oldestIndex] = true;
+	}
+
+	b2Free( skipped, system->particleCount * (int)sizeof( bool ) );
+	b2ParticleSystem_DestroyParticleInternal( system, oldestIndex, false );
 	b2RemoveZombieParticles( system );
 }
 
@@ -3556,6 +3898,21 @@ float b2ParticleSystem_GetParticleLifetime( b2ParticleSystemId systemId, int par
 	return system->lifetimes[particleIndex];
 }
 
+void b2ParticleSystem_SetPaused( b2ParticleSystemId systemId, bool paused )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	if ( system != NULL )
+	{
+		system->paused = paused;
+	}
+}
+
+bool b2ParticleSystem_GetPaused( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->paused : false;
+}
+
 static b2ParticleGroup* b2CreateGroup( b2World* world, b2ParticleSystem* system, const b2ParticleGroupDef* def )
 {
 	if ( B2_IS_NON_NULL( def->groupId ) )
@@ -3669,6 +4026,77 @@ static bool b2TestGroupPolygon( const b2ParticleGroupDef* def, b2Transform trans
 	return b2ParticlePointInPolygon( def->polygon, transform, point );
 }
 
+static bool b2TestGroupCompositeFill( const b2ParticleGroupDef* def, b2Transform transform, b2Vec2 point )
+{
+	for ( int i = 0; def->circles != NULL && i < def->circleCount; ++i )
+	{
+		if ( b2ParticlePointInCircle( def->circles + i, transform, point ) )
+		{
+			return true;
+		}
+	}
+	for ( int i = 0; def->capsules != NULL && i < def->capsuleCount; ++i )
+	{
+		if ( b2ParticlePointInCapsule( def->capsules + i, transform, point ) )
+		{
+			return true;
+		}
+	}
+	for ( int i = 0; def->polygons != NULL && i < def->polygonCount; ++i )
+	{
+		if ( b2ParticlePointInPolygon( def->polygons + i, transform, point ) )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool b2TryGetCompositeFillAABB( const b2ParticleGroupDef* def, b2Transform transform, b2AABB* aabb )
+{
+	bool hasShape = false;
+	for ( int i = 0; def->circles != NULL && i < def->circleCount; ++i )
+	{
+		b2AABB shapeAABB = b2ComputeCircleAABB( def->circles + i, transform );
+		*aabb = hasShape ? b2AABB_Union( *aabb, shapeAABB ) : shapeAABB;
+		hasShape = true;
+	}
+	for ( int i = 0; def->capsules != NULL && i < def->capsuleCount; ++i )
+	{
+		b2AABB shapeAABB = b2ComputeCapsuleAABB( def->capsules + i, transform );
+		*aabb = hasShape ? b2AABB_Union( *aabb, shapeAABB ) : shapeAABB;
+		hasShape = true;
+	}
+	for ( int i = 0; def->polygons != NULL && i < def->polygonCount; ++i )
+	{
+		b2AABB shapeAABB = b2ComputePolygonAABB( def->polygons + i, transform );
+		*aabb = hasShape ? b2AABB_Union( *aabb, shapeAABB ) : shapeAABB;
+		hasShape = true;
+	}
+	return hasShape;
+}
+
+static bool b2SampleSegmentStroke( b2ParticleSystem* system, int groupIndex, const b2ParticleGroupDef* def, b2Transform transform,
+								   const b2Segment* segment )
+{
+	b2Vec2 p1 = b2TransformPoint( transform, segment->point1 );
+	b2Vec2 p2 = b2TransformPoint( transform, segment->point2 );
+	b2Vec2 d = b2Sub( p2, p1 );
+	float length = b2Length( d );
+	float diameter = 2.0f * system->def.radius;
+	float stride = def->stride > 0.0f ? def->stride : B2_PARTICLE_STRIDE * diameter;
+	int count = b2MaxInt( 1, (int)floorf( length / stride ) + 1 );
+	for ( int i = 0; i < count; ++i )
+	{
+		float fraction = count == 1 ? 0.0f : (float)i / (float)( count - 1 );
+		if ( b2CreateGroupParticle( system, groupIndex, def, b2Lerp( p1, p2, fraction ) ) == B2_NULL_INDEX )
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 static void b2UpdateParticleContacts( b2ParticleSystem* system );
 static void b2UpdateParticlePairsAndTriads( b2ParticleSystem* system, int firstIndex, int lastIndex, bool reactiveOnly );
 
@@ -3722,17 +4150,23 @@ b2ParticleGroupId b2ParticleSystem_CreateParticleGroup( b2ParticleSystemId syste
 
 	if ( success && def->segment != NULL )
 	{
-		b2Vec2 p1 = b2TransformPoint( transform, def->segment->point1 );
-		b2Vec2 p2 = b2TransformPoint( transform, def->segment->point2 );
-		b2Vec2 d = b2Sub( p2, p1 );
-		float length = b2Length( d );
-		float diameter = 2.0f * system->def.radius;
-		float stride = def->stride > 0.0f ? def->stride : B2_PARTICLE_STRIDE * diameter;
-		int count = b2MaxInt( 1, (int)floorf( length / stride ) + 1 );
-		for ( int i = 0; i < count; ++i )
+		success = b2SampleSegmentStroke( system, group->localIndex, def, transform, def->segment );
+	}
+
+	if ( success )
+	{
+		b2AABB compositeAABB;
+		if ( b2TryGetCompositeFillAABB( def, transform, &compositeAABB ) )
 		{
-			float fraction = count == 1 ? 0.0f : (float)i / (float)( count - 1 );
-			if ( b2CreateGroupParticle( system, group->localIndex, def, b2Lerp( p1, p2, fraction ) ) == B2_NULL_INDEX )
+			success = b2SampleAABB( system, group->localIndex, def, transform, compositeAABB, b2TestGroupCompositeFill );
+		}
+	}
+
+	if ( success && def->segments != NULL )
+	{
+		for ( int i = 0; i < def->segmentCount; ++i )
+		{
+			if ( b2SampleSegmentStroke( system, group->localIndex, def, transform, def->segments + i ) == false )
 			{
 				success = false;
 				break;
@@ -5071,6 +5505,90 @@ static b2Shape* b2GetParticleShapeByIndex( b2World* world, int shapeIndex )
 	return shape->id == shapeIndex ? shape : NULL;
 }
 
+static void b2DetectStuckParticle( b2ParticleSystem* system, int particleIndex )
+{
+	if ( system->stuckThreshold <= 0 || system->bodyContactCounts == NULL )
+	{
+		return;
+	}
+
+	system->bodyContactCounts[particleIndex] += 1;
+	if ( system->bodyContactCounts[particleIndex] == 2 )
+	{
+		system->consecutiveContactSteps[particleIndex] += 1;
+	}
+	system->lastBodyContactSteps[particleIndex] = system->timestamp;
+}
+
+static void b2ParticleStuckCandidateTask( int startIndex, int endIndex, uint32_t workerIndex, void* taskContext )
+{
+	B2_UNUSED( workerIndex );
+
+	b2ParticleStuckCandidateTaskContext* context = taskContext;
+	b2ParticleSystem* system = context->system;
+	for ( int blockIndex = startIndex; blockIndex < endIndex; ++blockIndex )
+	{
+		int firstParticle = blockIndex * context->blockSize;
+		int lastParticle = b2MinInt( firstParticle + context->blockSize, system->particleCount );
+		if ( context->type == b2_particleStuckCandidateTaskCount )
+		{
+			int count = 0;
+			for ( int particleIndex = firstParticle; particleIndex < lastParticle; ++particleIndex )
+			{
+				if ( system->consecutiveContactSteps[particleIndex] > system->stuckThreshold )
+				{
+					count += 1;
+				}
+			}
+			context->blockCounts[blockIndex] = count;
+		}
+		else
+		{
+			int writeIndex = context->blockOffsets[blockIndex];
+			for ( int particleIndex = firstParticle; particleIndex < lastParticle; ++particleIndex )
+			{
+				if ( system->consecutiveContactSteps[particleIndex] > system->stuckThreshold )
+				{
+					context->candidates[writeIndex++] = particleIndex;
+				}
+			}
+		}
+	}
+}
+
+static void b2CollectStuckParticleCandidates( b2World* world, b2ParticleSystem* system )
+{
+	system->stuckCandidateCount = 0;
+	if ( system->stuckThreshold <= 0 || system->bodyContactCounts == NULL || system->particleCount == 0 )
+	{
+		return;
+	}
+
+	int blockSize = B2_PARTICLE_TASK_MIN_RANGE;
+	int blockCount = b2GetParticleBlockCount( system->particleCount );
+	int* blockCounts = b2ParticleScratchBuffer_AllocArray( &system->scratch, blockCount, int );
+	int* blockOffsets = b2ParticleScratchBuffer_AllocArray( &system->scratch, blockCount, int );
+	b2ParticleStuckCandidateTaskContext context = {
+		.system = system,
+		.type = b2_particleStuckCandidateTaskCount,
+		.blockSize = blockSize,
+		.blockCounts = blockCounts,
+		.blockOffsets = blockOffsets,
+	};
+	b2RunParticleTask( world, system, b2ParticleStuckCandidateTask, blockCount, 1, &context );
+	int candidateCount = b2BuildParticleBlockOffsets( blockCounts, blockOffsets, blockCount );
+	if ( candidateCount == 0 )
+	{
+		return;
+	}
+
+	b2ReserveStuckCandidates( system, candidateCount );
+	context.type = b2_particleStuckCandidateTaskWrite;
+	context.candidates = system->stuckCandidates;
+	b2RunParticleTask( world, system, b2ParticleStuckCandidateTask, blockCount, 1, &context );
+	system->stuckCandidateCount = candidateCount;
+}
+
 static void b2QueryParticleBodyTrees( b2World* world, b2AABB aabb, b2TreeQueryCallbackFcn* callback, void* context )
 {
 	for ( int i = 0; i < b2_bodyTypeCount; ++i )
@@ -5144,6 +5662,7 @@ static void b2AppendParticleBodyContactForShape( b2ParticleBodyContactQueryConte
 	float weight = 1.0f - distance * query->invDiameter;
 	b2AppendParticleBodyContactBlock(
 		query->block, (b2ParticleBodyContactData){ query->particleIndex, shapeId, weight, contactMass, normal } );
+	b2DetectStuckParticle( system, query->particleIndex );
 }
 
 static bool b2UpdateParticleBodyCollisionForShape( b2ParticleBodyCollisionQueryContext* query, int shapeIndex )
@@ -6096,11 +6615,21 @@ static void b2UpdateParticleBodyContacts( b2World* world, b2ParticleSystem* syst
 		system->previousBodyContactCount = 0;
 	}
 	system->bodyContactCount = 0;
+	system->stuckCandidateCount = 0;
 
 	float radius = system->def.radius;
 	float diameter = 2.0f * radius;
 	float invDiameter = diameter > 0.0f ? 1.0f / diameter : 0.0f;
 	float particleInvMass = b2GetParticleInvMass( system );
+	if ( system->stuckThreshold > 0 )
+	{
+		b2ReserveParticleStuckState( system, system->particleCount );
+		b2ParticleRangeTaskContext resetContext = {
+			.system = system,
+			.type = b2_particleTaskResetStuckState,
+		};
+		b2RunParticleRangeTask( world, &resetContext, system->particleCount );
+	}
 	if ( system->particleCount > 0 && world->shapes.count > 0 )
 	{
 		int blockSize = b2GetParticleBodyTaskBlockSize( world, system );
@@ -6156,6 +6685,8 @@ static void b2UpdateParticleBodyContacts( b2World* world, b2ParticleSystem* syst
 			}
 		}
 	}
+
+	b2CollectStuckParticleCandidates( world, system );
 
 	b2UpdateParticleBodyContactEvents( system );
 	system->profile.bodyContacts += b2GetMilliseconds( ticks );
@@ -7855,7 +8386,7 @@ static void b2StepParticleSystem( b2World* world, b2ParticleSystem* system, floa
 		return;
 	}
 
-	if ( system->id == B2_NULL_INDEX || system->particleCount == 0 )
+	if ( system->id == B2_NULL_INDEX || system->particleCount == 0 || system->paused )
 	{
 		return;
 	}
@@ -7878,6 +8409,7 @@ static void b2StepParticleSystem( b2World* world, b2ParticleSystem* system, floa
 	float subStep = timeStep / (float)system->def.iterationCount;
 	for ( int iteration = 0; iteration < system->def.iterationCount; ++iteration )
 	{
+		system->timestamp += 1;
 		uint64_t zombieTicks = b2GetTicks();
 		b2RemoveZombieParticles( system );
 		system->profile.zombie += b2GetMilliseconds( zombieTicks );
@@ -8215,6 +8747,46 @@ void b2ParticleSystem_SetDestructionByAge( b2ParticleSystemId systemId, bool ena
 	}
 }
 
+void b2ParticleSystem_SetStrictContactCheck( b2ParticleSystemId systemId, bool enabled )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	if ( system != NULL )
+	{
+		system->def.strictContactCheck = enabled;
+	}
+}
+
+bool b2ParticleSystem_GetStrictContactCheck( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->def.strictContactCheck : false;
+}
+
+void b2ParticleSystem_SetStuckThreshold( b2ParticleSystemId systemId, int iterations )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	if ( system != NULL )
+	{
+		system->stuckThreshold = iterations;
+		if ( iterations > 0 )
+		{
+			b2ReserveParticleStuckState( system, system->particleCount );
+		}
+	}
+}
+
+const int* b2ParticleSystem_GetStuckCandidates( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->stuckCandidates : NULL;
+}
+
+int b2ParticleSystem_GetStuckCandidateCount( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->stuckCandidateCount : 0;
+}
+
 void b2ParticleSystem_SetContactFilter( b2ParticleSystemId systemId, b2ParticleContactFilterFcn* filter, void* context )
 {
 	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
@@ -8269,6 +8841,18 @@ b2Vec2* b2ParticleSystem_GetMutableVelocityBuffer( b2ParticleSystemId systemId )
 	return system != NULL ? system->velocities : NULL;
 }
 
+const b2Vec2* b2ParticleSystem_GetForceBuffer( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->forces : NULL;
+}
+
+b2Vec2* b2ParticleSystem_GetMutableForceBuffer( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->forces : NULL;
+}
+
 const uint32_t* b2ParticleSystem_GetFlagsBuffer( b2ParticleSystemId systemId )
 {
 	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
@@ -8291,6 +8875,12 @@ b2ParticleColor* b2ParticleSystem_GetMutableColorBuffer( b2ParticleSystemId syst
 {
 	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
 	return system != NULL ? system->colors : NULL;
+}
+
+const int* b2ParticleSystem_GetGroupBuffer( b2ParticleSystemId systemId )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	return system != NULL ? system->groupIndices : NULL;
 }
 
 const float* b2ParticleSystem_GetWeightBuffer( b2ParticleSystemId systemId )

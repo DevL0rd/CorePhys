@@ -1364,6 +1364,141 @@ static int ParticleGroupShapeCreationRollsBackOnAdmissionFailure( void )
 	return 0;
 }
 
+static int ParticleHandlesTrackCompaction( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.1f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2ParticleDef particleDef = b2DefaultParticleDef();
+	ENSURE( b2ParticleSystem_CreateParticle( systemId, &particleDef ) == 0 );
+	particleDef.position = (b2Vec2){ 1.0f, 0.0f };
+	ENSURE( b2ParticleSystem_CreateParticle( systemId, &particleDef ) == 1 );
+
+	b2ParticleHandleId handleId = b2ParticleSystem_GetParticleHandleFromIndex( systemId, 1 );
+	ENSURE( b2ParticleHandle_IsValid( handleId ) );
+	ENSURE( b2ParticleHandle_GetIndex( handleId ) == 1 );
+
+	b2ParticleSystem_DestroyParticle( systemId, 0 );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == 1 );
+	ENSURE( b2ParticleHandle_IsValid( handleId ) );
+	ENSURE( b2ParticleHandle_GetIndex( handleId ) == 0 );
+
+	b2ParticleSystem_DestroyParticle( systemId, 0 );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == 0 );
+	ENSURE( b2ParticleHandle_IsValid( handleId ) == false );
+	ENSURE( b2ParticleHandle_GetIndex( handleId ) == -1 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticlePublicControlsAndBuffers( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.1f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2ParticleDef particleDef = b2DefaultParticleDef();
+	particleDef.velocity = (b2Vec2){ 1.0f, 0.0f };
+	ENSURE( b2ParticleSystem_CreateParticle( systemId, &particleDef ) == 0 );
+
+	ENSURE( b2ParticleSystem_GetForceBuffer( systemId ) != NULL );
+	ENSURE( b2ParticleSystem_GetMutableForceBuffer( systemId ) != NULL );
+	ENSURE( b2ParticleSystem_GetGroupBuffer( systemId ) != NULL );
+
+	b2ParticleSystem_SetStrictContactCheck( systemId, true );
+	ENSURE( b2ParticleSystem_GetStrictContactCheck( systemId ) == true );
+	b2ParticleSystem_SetStrictContactCheck( systemId, false );
+	ENSURE( b2ParticleSystem_GetStrictContactCheck( systemId ) == false );
+
+	b2ParticleSystem_SetPaused( systemId, true );
+	ENSURE( b2ParticleSystem_GetPaused( systemId ) == true );
+	b2World_Step( worldId, 1.0f, 1 );
+	const b2Vec2* positions = b2ParticleSystem_GetPositionBuffer( systemId );
+	ENSURE( positions != NULL );
+	ENSURE_SMALL( positions[0].x, FLT_EPSILON );
+	b2ParticleSystem_SetPaused( systemId, false );
+	ENSURE( b2ParticleSystem_GetPaused( systemId ) == false );
+	b2World_Step( worldId, 1.0f, 1 );
+	ENSURE( positions[0].x > 0.0f );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleCompositeShapeGroupCreation( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Circle circles[] = {
+		{ { -0.2f, 0.0f }, 0.12f },
+		{ { 0.2f, 0.0f }, 0.12f },
+	};
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.circles = circles;
+	groupDef.circleCount = 2;
+	groupDef.stride = 0.08f;
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( B2_IS_NON_NULL( groupId ) );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) > 0 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleStuckCandidatesMatchLiquidFunThreshold( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2BodyDef bodyDef = b2DefaultBodyDef();
+	b2BodyId bodyId = b2CreateBody( worldId, &bodyDef );
+	ENSURE( b2Body_IsValid( bodyId ) );
+	b2Polygon box = b2MakeBox( 0.5f, 0.5f );
+	b2ShapeDef shapeDef = b2DefaultShapeDef();
+	ENSURE( B2_IS_NON_NULL( b2CreatePolygonShape( bodyId, &shapeDef, &box ) ) );
+	ENSURE( B2_IS_NON_NULL( b2CreatePolygonShape( bodyId, &shapeDef, &box ) ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.1f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+	b2ParticleSystem_SetStuckThreshold( systemId, 1 );
+
+	b2ParticleDef particleDef = b2DefaultParticleDef();
+	particleDef.position = (b2Vec2){ 0.0f, 0.0f };
+	ENSURE( b2ParticleSystem_CreateParticle( systemId, &particleDef ) == 0 );
+	b2World_Step( worldId, 1.0f / 60.0f, 1 );
+	ENSURE( b2ParticleSystem_GetStuckCandidateCount( systemId ) == 0 );
+	b2World_Step( worldId, 1.0f / 60.0f, 1 );
+	ENSURE( b2ParticleSystem_GetStuckCandidateCount( systemId ) == 1 );
+	const int* candidates = b2ParticleSystem_GetStuckCandidates( systemId );
+	ENSURE( candidates != NULL );
+	ENSURE( candidates[0] == 0 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
 int ParticleTest( void )
 {
 	RUN_SUBTEST( ParticleFlagValues );
@@ -1393,6 +1528,10 @@ int ParticleTest( void )
 	RUN_SUBTEST( ParticleLifetimeGranularityAndOldestAdmission );
 	RUN_SUBTEST( ParticleGroupCreationRollsBackOnAdmissionFailure );
 	RUN_SUBTEST( ParticleGroupShapeCreationRollsBackOnAdmissionFailure );
+	RUN_SUBTEST( ParticleHandlesTrackCompaction );
+	RUN_SUBTEST( ParticlePublicControlsAndBuffers );
+	RUN_SUBTEST( ParticleCompositeShapeGroupCreation );
+	RUN_SUBTEST( ParticleStuckCandidatesMatchLiquidFunThreshold );
 
 	return 0;
 }

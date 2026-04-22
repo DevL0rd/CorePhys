@@ -101,6 +101,7 @@ typedef struct b2World
 	// Particle systems are world-owned and use ids for public access.
 	b2IdPool particleSystemIdPool;
 	b2IdPool particleGroupIdPool;
+	b2IdPool particleHandleIdPool;
 	b2ParticleSystem* particleSystems;
 	int particleSystemCount;
 	int particleSystemCapacity;

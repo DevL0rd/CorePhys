@@ -34,6 +34,10 @@ typedef struct b2ParticleState
 	float age;
 	float depth;
 	int groupIndex;
+	int handleIndex;
+	int lastBodyContactStep;
+	int bodyContactCount;
+	int consecutiveContactSteps;
 } b2ParticleState;
 
 typedef struct b2ParticleGroup
@@ -58,6 +62,14 @@ typedef struct b2ParticleGroup
 	void* userData;
 	uint16_t generation;
 } b2ParticleGroup;
+
+typedef struct b2ParticleHandle
+{
+	int id;
+	int particleIndex;
+	int systemId;
+	uint16_t generation;
+} b2ParticleHandle;
 
 typedef struct b2ParticlePayloadStorage
 {
@@ -92,6 +104,10 @@ typedef struct b2ParticleSystem
 	float* depths;
 	b2Vec2* accumulationVectors;
 	int* groupIndices;
+	int* handleIndices;
+	int* lastBodyContactSteps;
+	int* bodyContactCounts;
+	int* consecutiveContactSteps;
 
 	int proxyCount;
 	int proxyCapacity;
@@ -127,6 +143,10 @@ typedef struct b2ParticleSystem
 	int destructionEventCapacity;
 	b2ParticleDestructionEvent* destructionEvents;
 
+	int stuckCandidateCount;
+	int stuckCandidateCapacity;
+	int* stuckCandidates;
+
 	int pairCount;
 	int pairCapacity;
 	b2ParticlePairData* pairs;
@@ -139,6 +159,10 @@ typedef struct b2ParticleSystem
 	int groupCount;
 	int groupCapacity;
 	b2ParticleGroup* groups;
+
+	int handleCount;
+	int handleCapacity;
+	b2ParticleHandle* handles;
 
 	b2ParticleContactFilterFcn* contactFilterFcn;
 	void* contactFilterContext;
@@ -163,6 +187,9 @@ typedef struct b2ParticleSystem
 	int groupRefreshCount;
 	int compactionMoveCount;
 	int compactionRemapCount;
+	int timestamp;
+	int stuckThreshold;
+	bool paused;
 
 	b2ParticleScratchBuffer scratch;
 	b2ParticlePayloadStorage contactBlockPayloads;

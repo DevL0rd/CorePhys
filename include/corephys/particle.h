@@ -118,6 +118,14 @@ typedef struct b2ParticleGroupDef
 	const b2Capsule* capsule;
 	const b2Segment* segment;
 	const b2Polygon* polygon;
+	const b2Circle* circles;
+	int circleCount;
+	const b2Capsule* capsules;
+	int capsuleCount;
+	const b2Segment* segments;
+	int segmentCount;
+	const b2Polygon* polygons;
+	int polygonCount;
 	float stride;
 	int particleCount;
 	const b2Vec2* positionData;
@@ -294,6 +302,10 @@ B2_API void* b2ParticleSystem_GetUserData( b2ParticleSystemId systemId );
 
 B2_API int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2ParticleDef* def );
 B2_API void b2ParticleSystem_DestroyParticle( b2ParticleSystemId systemId, int particleIndex );
+B2_API void b2ParticleSystem_DestroyOldestParticle( b2ParticleSystemId systemId, int index );
+B2_API b2ParticleHandleId b2ParticleSystem_GetParticleHandleFromIndex( b2ParticleSystemId systemId, int particleIndex );
+B2_API bool b2ParticleHandle_IsValid( b2ParticleHandleId handleId );
+B2_API int b2ParticleHandle_GetIndex( b2ParticleHandleId handleId );
 B2_API int b2ParticleSystem_DestroyParticlesInCircle( b2ParticleSystemId systemId, const b2Circle* circle, b2Transform transform );
 B2_API int b2ParticleSystem_DestroyParticlesInSegment( b2ParticleSystemId systemId, const b2Segment* segment, b2Transform transform );
 B2_API int b2ParticleSystem_DestroyParticlesInCapsule( b2ParticleSystemId systemId, const b2Capsule* capsule, b2Transform transform );
@@ -303,6 +315,8 @@ B2_API int b2ParticleSystem_GetMaxParticleCount( b2ParticleSystemId systemId );
 B2_API void b2ParticleSystem_SetMaxParticleCount( b2ParticleSystemId systemId, int count );
 B2_API void b2ParticleSystem_SetParticleLifetime( b2ParticleSystemId systemId, int particleIndex, float lifetime );
 B2_API float b2ParticleSystem_GetParticleLifetime( b2ParticleSystemId systemId, int particleIndex );
+B2_API void b2ParticleSystem_SetPaused( b2ParticleSystemId systemId, bool paused );
+B2_API bool b2ParticleSystem_GetPaused( b2ParticleSystemId systemId );
 
 B2_API b2ParticleGroupId b2ParticleSystem_CreateParticleGroup( b2ParticleSystemId systemId, const b2ParticleGroupDef* def );
 B2_API void b2DestroyParticleGroup( b2ParticleGroupId groupId );
@@ -337,6 +351,11 @@ B2_API void b2ParticleSystem_SetSurfaceTensionStrengths( b2ParticleSystemId syst
 B2_API void b2ParticleSystem_SetStaticPressureStrengths( b2ParticleSystemId systemId, float strength, float relaxation, int iterations );
 B2_API void b2ParticleSystem_SetColorMixingStrength( b2ParticleSystemId systemId, float value );
 B2_API void b2ParticleSystem_SetDestructionByAge( b2ParticleSystemId systemId, bool enabled );
+B2_API void b2ParticleSystem_SetStrictContactCheck( b2ParticleSystemId systemId, bool enabled );
+B2_API bool b2ParticleSystem_GetStrictContactCheck( b2ParticleSystemId systemId );
+B2_API void b2ParticleSystem_SetStuckThreshold( b2ParticleSystemId systemId, int iterations );
+B2_API const int* b2ParticleSystem_GetStuckCandidates( b2ParticleSystemId systemId );
+B2_API int b2ParticleSystem_GetStuckCandidateCount( b2ParticleSystemId systemId );
 B2_API void b2ParticleSystem_SetContactFilter( b2ParticleSystemId systemId, b2ParticleContactFilterFcn* filter, void* context );
 B2_API void b2ParticleSystem_SetBodyContactFilter( b2ParticleSystemId systemId, b2ParticleBodyContactFilterFcn* filter,
 												   void* context );
@@ -346,10 +365,13 @@ B2_API const b2Vec2* b2ParticleSystem_GetPositionBuffer( b2ParticleSystemId syst
 B2_API b2Vec2* b2ParticleSystem_GetMutablePositionBuffer( b2ParticleSystemId systemId );
 B2_API const b2Vec2* b2ParticleSystem_GetVelocityBuffer( b2ParticleSystemId systemId );
 B2_API b2Vec2* b2ParticleSystem_GetMutableVelocityBuffer( b2ParticleSystemId systemId );
+B2_API const b2Vec2* b2ParticleSystem_GetForceBuffer( b2ParticleSystemId systemId );
+B2_API b2Vec2* b2ParticleSystem_GetMutableForceBuffer( b2ParticleSystemId systemId );
 B2_API const uint32_t* b2ParticleSystem_GetFlagsBuffer( b2ParticleSystemId systemId );
 B2_API uint32_t* b2ParticleSystem_GetMutableFlagsBuffer( b2ParticleSystemId systemId );
 B2_API const b2ParticleColor* b2ParticleSystem_GetColorBuffer( b2ParticleSystemId systemId );
 B2_API b2ParticleColor* b2ParticleSystem_GetMutableColorBuffer( b2ParticleSystemId systemId );
+B2_API const int* b2ParticleSystem_GetGroupBuffer( b2ParticleSystemId systemId );
 B2_API const float* b2ParticleSystem_GetWeightBuffer( b2ParticleSystemId systemId );
 B2_API const float* b2ParticleSystem_GetLifetimeBuffer( b2ParticleSystemId systemId );
 B2_API float* b2ParticleSystem_GetMutableLifetimeBuffer( b2ParticleSystemId systemId );

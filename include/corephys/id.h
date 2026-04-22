@@ -97,6 +97,14 @@ typedef struct b2ParticleGroupId
 	uint16_t generation;
 } b2ParticleGroupId;
 
+/// Particle handle id references a stable particle handle. This should be treated as an opaque handle.
+typedef struct b2ParticleHandleId
+{
+	int32_t index1;
+	uint16_t world0;
+	uint16_t generation;
+} b2ParticleHandleId;
+
 #ifdef __cplusplus
 	#define B2_NULL_ID {}
 	#define B2_ID_INLINE inline
@@ -115,6 +123,7 @@ static const b2JointId b2_nullJointId = B2_NULL_ID;
 static const b2ContactId b2_nullContactId = B2_NULL_ID;
 static const b2ParticleSystemId b2_nullParticleSystemId = B2_NULL_ID;
 static const b2ParticleGroupId b2_nullParticleGroupId = B2_NULL_ID;
+static const b2ParticleHandleId b2_nullParticleHandleId = B2_NULL_ID;
 
 /// Macro to determine if any id is null.
 #define B2_IS_NULL( id ) ( (id).index1 == 0 )
@@ -213,6 +222,19 @@ B2_ID_INLINE uint64_t b2StoreParticleGroupId( b2ParticleGroupId id )
 B2_ID_INLINE b2ParticleGroupId b2LoadParticleGroupId( uint64_t x )
 {
 	b2ParticleGroupId id = { (int32_t)( x >> 32 ), (uint16_t)( x >> 16 ), (uint16_t)( x ) };
+	return id;
+}
+
+/// Store a particle handle id into a uint64_t.
+B2_ID_INLINE uint64_t b2StoreParticleHandleId( b2ParticleHandleId id )
+{
+	return ( (uint64_t)id.index1 << 32 ) | ( (uint64_t)id.world0 ) << 16 | (uint64_t)id.generation;
+}
+
+/// Load a uint64_t into a particle handle id.
+B2_ID_INLINE b2ParticleHandleId b2LoadParticleHandleId( uint64_t x )
+{
+	b2ParticleHandleId id = { (int32_t)( x >> 32 ), (uint16_t)( x >> 16 ), (uint16_t)( x ) };
 	return id;
 }
 
