@@ -11,6 +11,10 @@ set(COREPHYS_TEST_FILES
     test_id.c
     test_macros.h
     test_math.c
+    test_particle.c
+    test_particle_helpers.c
+    test_particle_parallel.c
+    test_particle_scenarios.c
     test_shape.c
     test_table.c
     test_world.c

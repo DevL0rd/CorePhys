@@ -14,6 +14,7 @@
 #include "corephys/types.h"
 
 typedef struct b2Island b2Island;
+typedef struct b2ParticleSystem b2ParticleSystem;
 b2DeclareArray( b2Island );
 
 // Per thread task storage
@@ -96,6 +97,13 @@ typedef struct b2World
 
 	// This is a dense array of sensor data.
 	b2SensorArray sensors;
+
+	// Particle systems are world-owned and use ids for public access.
+	b2IdPool particleSystemIdPool;
+	b2IdPool particleGroupIdPool;
+	b2ParticleSystem* particleSystems;
+	int particleSystemCount;
+	int particleSystemCapacity;
 
 	// Per thread storage
 	b2TaskContextArray taskContexts;
@@ -182,6 +190,7 @@ typedef struct b2World
 
 	uint16_t worldId;
 
+	bool particleSystemTaskActive;
 	bool enableSleep;
 	bool locked;
 	bool enableWarmStarting;
@@ -194,6 +203,7 @@ typedef struct b2World
 b2World* b2GetWorldFromId( b2WorldId id );
 b2World* b2GetWorld( int index );
 b2World* b2GetWorldLocked( int index );
+b2World* b2TryGetWorld( int index );
 
 void b2ValidateConnectivity( b2World* world );
 void b2ValidateSolverSets( b2World* world );

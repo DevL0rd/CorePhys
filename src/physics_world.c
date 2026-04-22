@@ -18,6 +18,7 @@
 #include "ctz.h"
 #include "island.h"
 #include "joint.h"
+#include "particle_system.h"
 #include "sensor.h"
 #include "shape.h"
 #include "solver.h"
@@ -67,6 +68,22 @@ b2World* b2GetWorldLocked( int index )
 	if ( world->locked )
 	{
 		B2_ASSERT( false );
+		return NULL;
+	}
+
+	return world;
+}
+
+b2World* b2TryGetWorld( int index )
+{
+	if ( index < 0 || B2_MAX_WORLDS <= index )
+	{
+		return NULL;
+	}
+
+	b2World* world = b2_worlds + index;
+	if ( world->worldId != index || world->inUse == false )
+	{
 		return NULL;
 	}
 
@@ -172,6 +189,7 @@ b2WorldId b2CreateWorld( const b2WorldDef* def )
 	b2Array_CreateN( world->islands, 8 );
 
 	world->sensors = b2SensorArray_Create( 4 );
+	b2CreateParticleWorld( world );
 
 	world->bodyMoveEvents = b2BodyMoveEventArray_Create( 4 );
 	world->sensorBeginEvents = b2SensorBeginTouchEventArray_Create( 4 );
@@ -268,6 +286,8 @@ b2WorldId b2CreateWorld( const b2WorldDef* def )
 void b2DestroyWorld( b2WorldId worldId )
 {
 	b2World* world = b2GetWorldFromId( worldId );
+
+	b2DestroyParticleWorld( world );
 
 	b2DestroyBitSet( &world->debugBodySet );
 	b2DestroyBitSet( &world->debugJointSet );
@@ -775,6 +795,7 @@ void b2World_Step( b2WorldId worldId, float timeStep, int subStepCount )
 	b2ContactBeginTouchEventArray_Clear( &world->contactBeginEvents );
 	b2ContactHitEventArray_Clear( &world->contactHitEvents );
 	b2JointEventArray_Clear( &world->jointEvents );
+	b2ClearParticleEvents( world );
 
 	world->profile = (b2Profile){ 0 };
 
@@ -845,6 +866,10 @@ void b2World_Step( b2WorldId worldId, float timeStep, int subStepCount )
 	// Integrate velocities, solve velocity constraints, and integrate positions.
 	if ( timeStep > 0.0f )
 	{
+		uint64_t particleTicks = b2GetTicks();
+		b2StepParticles( world, timeStep );
+		world->profile.particles = b2GetMilliseconds( particleTicks );
+
 		uint64_t solveTicks = b2GetTicks();
 		b2Solve( world, &context );
 		world->profile.solve = b2GetMilliseconds( solveTicks );
@@ -1284,6 +1309,8 @@ void b2World_Draw( b2WorldId worldId, b2DebugDraw* draw )
 			word = word & ( word - 1 );
 		}
 	}
+
+	b2DrawParticles( world, draw );
 }
 
 b2BodyEvents b2World_GetBodyEvents( b2WorldId worldId )
@@ -1744,6 +1771,7 @@ b2Counters b2World_GetCounters( b2WorldId worldId )
 	s.stackUsed = b2GetMaxArenaAllocation( &world->arena );
 	s.byteCount = b2GetByteCount();
 	s.taskCount = world->taskCount;
+	b2GetParticleWorldCounters( world, &s );
 
 	for ( int i = 0; i < B2_GRAPH_COLOR_COUNT; ++i )
 	{

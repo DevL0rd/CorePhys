@@ -3,9 +3,11 @@
 
 #include "TaskScheduler_c.h"
 #include "determinism.h"
+#include "particle_scenarios.h"
 #include "test_macros.h"
 
 #include "corephys/corephys.h"
+#include "corephys/particle.h"
 #include "corephys/types.h"
 
 #include <stdio.h>
@@ -145,6 +147,82 @@ static int MultithreadingTest( void )
 	return 0;
 }
 
+static int SingleParticleMultithreadingTest( int workerCount, uint32_t* hash )
+{
+	scheduler = enkiNewTaskScheduler();
+	struct enkiTaskSchedulerConfig config = enkiGetTaskSchedulerConfig( scheduler );
+	config.numTaskThreadsToCreate = workerCount - 1;
+	enkiInitTaskSchedulerWithConfig( scheduler, config );
+
+	for ( int i = 0; i < e_maxTasks; ++i )
+	{
+		tasks[i] = enkiCreateTaskSet( scheduler, ExecuteRangeTask );
+	}
+
+	taskCount = 0;
+
+	b2WorldDef worldDef = b2DefaultWorldDef();
+	worldDef.gravity = (b2Vec2){ 0.0f, -10.0f };
+	worldDef.enqueueTask = EnqueueTask;
+	worldDef.finishTask = FinishTask;
+	worldDef.workerCount = workerCount;
+
+	b2WorldId worldId = b2CreateWorld( &worldDef );
+	ParticleScenario scenario = CreateParticleScenario( worldId, ParticleScenario_WaveMachine );
+
+	float timeStep = 1.0f / 60.0f;
+	for ( int i = 0; i < 15; ++i )
+	{
+		StepParticleScenario( worldId, &scenario, timeStep );
+		b2World_Step( worldId, timeStep, 4 );
+		taskCount = 0;
+		TracyCFrameMark;
+	}
+
+	b2ParticleSystemCounters counters = b2ParticleSystem_GetCounters( scenario.systemId );
+	ENSURE( counters.particleCount > 0 );
+	ENSURE( counters.contactCount > 0 );
+	ENSURE( counters.bodyContactCount > 0 );
+
+	*hash = HashParticleScenario( &scenario );
+	ENSURE( *hash != 0 );
+
+	b2DestroyWorld( worldId );
+
+	for ( int i = 0; i < e_maxTasks; ++i )
+	{
+		enkiDeleteTaskSet( scheduler, tasks[i] );
+		tasks[i] = NULL;
+	}
+
+	enkiDeleteTaskScheduler( scheduler );
+	scheduler = NULL;
+	taskCount = 0;
+
+	return 0;
+}
+
+static int ParticleMultithreadingTest( void )
+{
+	uint32_t referenceHash = 0;
+	for ( int workerCount = 1; workerCount < 6; ++workerCount )
+	{
+		uint32_t hash = 0;
+		int result = SingleParticleMultithreadingTest( workerCount, &hash );
+		ENSURE( result == 0 );
+		if ( workerCount == 1 )
+		{
+			referenceHash = hash;
+		}
+		else
+		{
+			ENSURE( hash == referenceHash );
+		}
+	}
+
+	return 0;
+}
+
 // Test cross-platform determinism.
 static int CrossPlatformTest( void )
 {
@@ -178,6 +256,7 @@ static int CrossPlatformTest( void )
 int DeterminismTest( void )
 {
 	RUN_SUBTEST( MultithreadingTest );
+	RUN_SUBTEST( ParticleMultithreadingTest );
 	RUN_SUBTEST( CrossPlatformTest );
 
 	return 0;

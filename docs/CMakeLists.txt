@@ -44,6 +44,7 @@ doxygen_add_docs(doc
                 "foundation.md"
                 "collision.md"
                 "simulation.md"
+                "corephys_liquidfun_particle_port.md"
                 "loose_ends.md"
                 "character.md"
                 "reading.md"

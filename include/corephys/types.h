@@ -523,6 +523,36 @@ typedef struct b2Profile
 	float bullets;
 	float sleepIslands;
 	float sensors;
+	float particles;
+	float particleLifetimes;
+	float particleZombie;
+	float particleProxies;
+	float particleSpatialIndexBuild;
+	float particleSpatialIndexScatter;
+	float particleContacts;
+	float particleContactCandidates;
+	float particleContactMerge;
+	float particleBodyContacts;
+	float particleBodyCandidateQuery;
+	float particleWeights;
+	float particleForces;
+	float particlePressure;
+	float particleDamping;
+	float particleReductionGenerate;
+	float particleReductionApply;
+	float particleCollision;
+	float particleSolidDepth;
+	float particleSolidEjection;
+	float particleGroups;
+	float particleGroupRefresh;
+	float particleBarrier;
+	float particleCompaction;
+	float particleCompactionMark;
+	float particleCompactionPrefix;
+	float particleCompactionScatter;
+	float particleCompactionRemap;
+	float particleScratch;
+	float particleEvents;
 } b2Profile;
 
 /// Counters that give details of the simulation size.
@@ -539,6 +569,30 @@ typedef struct b2Counters
 	int byteCount;
 	int taskCount;
 	int colorCounts[24];
+	int particleSystemCount;
+	int particleGroupCount;
+	int particleCount;
+	int particleContactCount;
+	int particleBodyContactCount;
+	int particleTaskCount;
+	int particleTaskRangeCount;
+	int particleTaskRangeMin;
+	int particleTaskRangeMax;
+	int particleSpatialCellCount;
+	int particleOccupiedCellCount;
+	int particleSpatialProxyCount;
+	int particleSpatialScatterCount;
+	int particleContactCandidateCount;
+	int particleBodyShapeCandidateCount;
+	int particleBarrierCandidateCount;
+	int particleReductionDeltaCount;
+	int particleReductionApplyCount;
+	int particleGroupRefreshCount;
+	int particleCompactionMoveCount;
+	int particleCompactionRemapCount;
+	int particleByteCount;
+	int particleScratchByteCount;
+	int particleScratchHighWaterByteCount;
 } b2Counters;
 //! @endcond
 

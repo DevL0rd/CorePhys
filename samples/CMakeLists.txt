@@ -111,6 +111,7 @@ set(COREPHYS_SAMPLE_FILES
     sample_geometry.cpp
     sample_issues.cpp
     sample_joints.cpp
+    sample_particles.cpp
     sample_robustness.cpp
     sample_shapes.cpp
     sample_stacking.cpp

@@ -3,6 +3,8 @@
 
 #include "test_macros.h"
 
+#include <string.h>
+
 #if defined( _MSC_VER )
 	#include <crtdbg.h>
 
@@ -26,11 +28,31 @@ extern int DistanceTest( void );
 extern int DynamicTreeTest( void );
 extern int IdTest( void );
 extern int MathTest( void );
+extern int ParticleHelperTest( void );
+extern int ParticleParallelTest( void );
+extern int ParticleScenarioTest( void );
+extern int ParticleTest( void );
 extern int ShapeTest( void );
 extern int TableTest( void );
 extern int WorldTest( void );
 
-int main( void )
+static bool ShouldRunTest( const char* testName, int argc, char** argv )
+{
+	return argc == 1 || strcmp( argv[1], testName ) == 0;
+}
+
+#define RUN_SELECTED_TEST( T )                                                                                                   \
+	do                                                                                                                           \
+	{                                                                                                                            \
+		if ( ShouldRunTest( #T, argc, argv ) )                                                                                   \
+		{                                                                                                                        \
+			ranTest = true;                                                                                                      \
+			RUN_TEST( T );                                                                                                       \
+		}                                                                                                                        \
+	}                                                                                                                            \
+	while ( false )
+
+int main( int argc, char** argv )
 {
 #if defined( _MSC_VER )
 	// Enable memory-leak reports
@@ -52,17 +74,28 @@ int main( void )
 	printf( "Starting CorePhys unit tests\n" );
 	printf( "======================================\n" );
 
-	RUN_TEST( TableTest );
-	RUN_TEST( MathTest );
-	RUN_TEST( BitSetTest );
-	RUN_TEST( CollisionTest );
-	RUN_TEST( ContainerTest );
-	RUN_TEST( DeterminismTest );
-	RUN_TEST( DistanceTest );
-	RUN_TEST( DynamicTreeTest );
-	RUN_TEST( IdTest );
-	RUN_TEST( ShapeTest );
-	RUN_TEST( WorldTest );
+	bool ranTest = false;
+	RUN_SELECTED_TEST( TableTest );
+	RUN_SELECTED_TEST( MathTest );
+	RUN_SELECTED_TEST( ParticleTest );
+	RUN_SELECTED_TEST( ParticleHelperTest );
+	RUN_SELECTED_TEST( ParticleParallelTest );
+	RUN_SELECTED_TEST( ParticleScenarioTest );
+	RUN_SELECTED_TEST( BitSetTest );
+	RUN_SELECTED_TEST( CollisionTest );
+	RUN_SELECTED_TEST( ContainerTest );
+	RUN_SELECTED_TEST( DeterminismTest );
+	RUN_SELECTED_TEST( DistanceTest );
+	RUN_SELECTED_TEST( DynamicTreeTest );
+	RUN_SELECTED_TEST( IdTest );
+	RUN_SELECTED_TEST( ShapeTest );
+	RUN_SELECTED_TEST( WorldTest );
+
+	if ( ranTest == false )
+	{
+		printf( "Unknown CorePhys test: %s\n", argc > 1 ? argv[1] : "" );
+		return 1;
+	}
 
 	printf( "======================================\n" );
 	printf( "All CorePhys tests passed!\n" );

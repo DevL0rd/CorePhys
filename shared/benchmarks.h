@@ -25,6 +25,12 @@ void CreateTumbler( b2WorldId worldId );
 void CreateWasher( b2WorldId worldId );
 void CreateJunkyard( b2WorldId worldId );
 float StepJunkyard( b2WorldId worldId, int stepCount );
+void CreateParticleDamBreakBenchmark( b2WorldId worldId );
+void CreateParticleFaucetBenchmark( b2WorldId worldId );
+void CreateParticleWaveMachineBenchmark( b2WorldId worldId );
+void CreateParticleElasticBenchmark( b2WorldId worldId );
+void CreateParticleBarrierBenchmark( b2WorldId worldId );
+float StepParticleBenchmark( b2WorldId worldId, int stepCount );
 
 #ifdef __cplusplus
 }

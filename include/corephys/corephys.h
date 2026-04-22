@@ -6,6 +6,7 @@
 #include "base.h"
 #include "collision.h"
 #include "id.h"
+#include "particle.h"
 #include "types.h"
 
 #include <stdbool.h>

@@ -4,6 +4,7 @@
 #include "benchmarks.h"
 
 #include "human.h"
+#include "particle_scenarios.h"
 
 #include "corephys/corephys.h"
 
@@ -789,4 +790,43 @@ float StepJunkyard( b2WorldId worldId, int stepCount )
 	b2Transform target = { (b2Vec2){ 60.0f * cs.sine, 0.0f }, b2Rot_identity };
 	b2Body_SetTargetTransform( g_junkyardData.pusherId, target, timeStep, true );
 	return 0.0f;
+}
+
+static ParticleScenario g_particleBenchmarkScenario;
+
+static void CreateParticleBenchmark( b2WorldId worldId, ParticleScenarioType type )
+{
+	g_particleBenchmarkScenario = CreateParticleScenario( worldId, type );
+}
+
+void CreateParticleDamBreakBenchmark( b2WorldId worldId )
+{
+	CreateParticleBenchmark( worldId, ParticleScenario_DamBreak );
+}
+
+void CreateParticleFaucetBenchmark( b2WorldId worldId )
+{
+	CreateParticleBenchmark( worldId, ParticleScenario_Faucet );
+}
+
+void CreateParticleWaveMachineBenchmark( b2WorldId worldId )
+{
+	CreateParticleBenchmark( worldId, ParticleScenario_WaveMachine );
+}
+
+void CreateParticleElasticBenchmark( b2WorldId worldId )
+{
+	CreateParticleBenchmark( worldId, ParticleScenario_ElasticGroups );
+}
+
+void CreateParticleBarrierBenchmark( b2WorldId worldId )
+{
+	CreateParticleBenchmark( worldId, ParticleScenario_Barrier );
+}
+
+float StepParticleBenchmark( b2WorldId worldId, int stepCount )
+{
+	(void)stepCount;
+	StepParticleScenario( worldId, &g_particleBenchmarkScenario, 1.0f / 60.0f );
+	return (float)( HashParticleScenario( &g_particleBenchmarkScenario ) & 0xFFFFu );
 }

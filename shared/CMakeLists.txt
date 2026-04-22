@@ -7,6 +7,10 @@ set(COREPHYS_SHARED_FILES
 	determinism.h
 	human.c
 	human.h
+	particle_parallel_benchmarks.c
+	particle_parallel_benchmarks.h
+	particle_scenarios.c
+	particle_scenarios.h
 	random.c
 	random.h
 )

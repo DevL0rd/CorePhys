@@ -81,6 +81,22 @@ typedef struct b2ContactId
 	uint32_t generation;
 } b2ContactId;
 
+/// Particle system id references a particle system instance. This should be treated as an opaque handle.
+typedef struct b2ParticleSystemId
+{
+	int32_t index1;
+	uint16_t world0;
+	uint16_t generation;
+} b2ParticleSystemId;
+
+/// Particle group id references a particle group instance. This should be treated as an opaque handle.
+typedef struct b2ParticleGroupId
+{
+	int32_t index1;
+	uint16_t world0;
+	uint16_t generation;
+} b2ParticleGroupId;
+
 #ifdef __cplusplus
 	#define B2_NULL_ID {}
 	#define B2_ID_INLINE inline
@@ -97,6 +113,8 @@ static const b2ShapeId b2_nullShapeId = B2_NULL_ID;
 static const b2ChainId b2_nullChainId = B2_NULL_ID;
 static const b2JointId b2_nullJointId = B2_NULL_ID;
 static const b2ContactId b2_nullContactId = B2_NULL_ID;
+static const b2ParticleSystemId b2_nullParticleSystemId = B2_NULL_ID;
+static const b2ParticleGroupId b2_nullParticleGroupId = B2_NULL_ID;
 
 /// Macro to determine if any id is null.
 #define B2_IS_NULL( id ) ( (id).index1 == 0 )
@@ -169,6 +187,32 @@ B2_ID_INLINE uint64_t b2StoreJointId( b2JointId id )
 B2_ID_INLINE b2JointId b2LoadJointId( uint64_t x )
 {
 	b2JointId id = { (int32_t)( x >> 32 ), (uint16_t)( x >> 16 ), (uint16_t)( x ) };
+	return id;
+}
+
+/// Store a particle system id into a uint64_t.
+B2_ID_INLINE uint64_t b2StoreParticleSystemId( b2ParticleSystemId id )
+{
+	return ( (uint64_t)id.index1 << 32 ) | ( (uint64_t)id.world0 ) << 16 | (uint64_t)id.generation;
+}
+
+/// Load a uint64_t into a particle system id.
+B2_ID_INLINE b2ParticleSystemId b2LoadParticleSystemId( uint64_t x )
+{
+	b2ParticleSystemId id = { (int32_t)( x >> 32 ), (uint16_t)( x >> 16 ), (uint16_t)( x ) };
+	return id;
+}
+
+/// Store a particle group id into a uint64_t.
+B2_ID_INLINE uint64_t b2StoreParticleGroupId( b2ParticleGroupId id )
+{
+	return ( (uint64_t)id.index1 << 32 ) | ( (uint64_t)id.world0 ) << 16 | (uint64_t)id.generation;
+}
+
+/// Load a uint64_t into a particle group id.
+B2_ID_INLINE b2ParticleGroupId b2LoadParticleGroupId( uint64_t x )
+{
+	b2ParticleGroupId id = { (int32_t)( x >> 32 ), (uint16_t)( x >> 16 ), (uint16_t)( x ) };
 	return id;
 }
 

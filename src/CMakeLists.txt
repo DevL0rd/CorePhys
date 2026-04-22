@@ -39,6 +39,12 @@ set(COREPHYS_SOURCE_FILES
 	math_functions.c
 	motor_joint.c
 	mover.c
+	particle_scratch.c
+	particle_scratch.h
+	particle_sort.c
+	particle_sort.h
+	particle_system.c
+	particle_system.h
 	physics_world.c
 	physics_world.h
 	prismatic_joint.c
@@ -66,6 +72,7 @@ set(COREPHYS_API_FILES
 	../include/corephys/constants.h
 	../include/corephys/id.h
 	../include/corephys/math_functions.h
+	../include/corephys/particle.h
 	../include/corephys/types.h
 )
 
