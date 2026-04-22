@@ -5,13 +5,13 @@
 #include "determinism.h"
 #include "test_macros.h"
 
-#include "box2d/box2d.h"
-#include "box2d/types.h"
+#include "corephys/corephys.h"
+#include "corephys/types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef BOX2D_PROFILE
+#ifdef COREPHYS_PROFILE
 #include <tracy/TracyC.h>
 #else
 #define TracyCFrameMark
@@ -27,8 +27,8 @@ enum
 
 typedef struct TaskData
 {
-	b2TaskCallback* box2dTask;
-	void* box2dContext;
+	b2TaskCallback* corephysTask;
+	void* corephysContext;
 } TaskData;
 
 enkiTaskScheduler* scheduler;
@@ -39,10 +39,10 @@ int taskCount;
 static void ExecuteRangeTask( uint32_t start, uint32_t end, uint32_t threadIndex, void* context )
 {
 	TaskData* data = context;
-	data->box2dTask( start, end, threadIndex, data->box2dContext );
+	data->corephysTask( start, end, threadIndex, data->corephysContext );
 }
 
-static void* EnqueueTask( b2TaskCallback* box2dTask, int itemCount, int minRange, void* box2dContext, void* userContext )
+static void* EnqueueTask( b2TaskCallback* corephysTask, int itemCount, int minRange, void* corephysContext, void* userContext )
 {
 	MAYBE_UNUSED( userContext );
 
@@ -50,8 +50,8 @@ static void* EnqueueTask( b2TaskCallback* box2dTask, int itemCount, int minRange
 	{
 		enkiTaskSet* task = tasks[taskCount];
 		TaskData* data = taskData + taskCount;
-		data->box2dTask = box2dTask;
-		data->box2dContext = box2dContext;
+		data->corephysTask = corephysTask;
+		data->corephysContext = corephysContext;
 
 		struct enkiParamsTaskSet params;
 		params.minRange = minRange;
@@ -67,7 +67,7 @@ static void* EnqueueTask( b2TaskCallback* box2dTask, int itemCount, int minRange
 		return task;
 	}
 
-	box2dTask( 0, itemCount, 0, box2dContext );
+	corephysTask( 0, itemCount, 0, corephysContext );
 	return NULL;
 }
 

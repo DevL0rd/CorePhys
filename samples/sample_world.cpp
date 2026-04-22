@@ -7,8 +7,8 @@
 #include "human.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -53,7 +53,7 @@ public:
 			for ( int i = 0; i < m_gridCount; ++i )
 			{
 				// Create a new body regularly so that shapes are not too far from the body origin.
-				// Most algorithms in Box2D work in local coordinates, but contact points are computed
+				// Most algorithms in CorePhys work in local coordinates, but contact points are computed
 				// relative to the body origin.
 				// This makes a noticeable improvement in stability far from the origin.
 				if ( i % 10 == 0 )

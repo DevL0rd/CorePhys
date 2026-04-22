@@ -1,17 +1,17 @@
-# Hello Box2D {#hello}
-In the distribution of Box2D is a Hello World unit test written in C. The test
+# Hello CorePhys {#hello}
+In the distribution of CorePhys is a Hello World unit test written in C. The test
 creates a large ground box and a small dynamic box. This code does not
 contain any graphics. All you will see is text output in the console of
 the box's position over time.
 
-This is a good example of how to get up and running with Box2D.
+This is a good example of how to get up and running with CorePhys.
 
 ## Creating a World
-Every Box2D program begins with the creation of a world object.
+Every CorePhys program begins with the creation of a world object.
 The world is the physics hub that manages memory, objects, and simulation.
 The world is represented by an opaque handle called `b2WorldId`.
 
-It is easy to create a Box2D world. First, I create the world definition:
+It is easy to create a CorePhys world. First, I create the world definition:
 
 ```c
 b2WorldDef worldDef = b2DefaultWorldDef();
@@ -20,7 +20,7 @@ b2WorldDef worldDef = b2DefaultWorldDef();
 The world definition is a temporary object that you can create on the stack. The function
 `b2DefaultWorldDef()` populates the world definition with default values. This is necessary because C does not have constructors and zero initialization is not appropriate for `b2WorldDef`.
 
-Now I configure the world gravity vector. Note that Box2D has no concept of *up* and you may point gravity in any direction you like. Box2D example code uses the positive y-axis as the up direction.
+Now I configure the world gravity vector. Note that CorePhys has no concept of *up* and you may point gravity in any direction you like. CorePhys example code uses the positive y-axis as the up direction.
 
 ```c
 worldDef.gravity = (b2Vec2){0.0f, -10.0f};
@@ -75,11 +75,11 @@ b2Polygon groundBox = b2MakeBox(50.0f, 10.0f);
 
 The `b2MakeBox()` function takes the **half-width** and
 **half-height** (extents). So in this case the ground box is 100
-units wide (x-axis) and 20 units tall (y-axis). Box2D is tuned for
+units wide (x-axis) and 20 units tall (y-axis). CorePhys is tuned for
 meters, kilograms, and seconds. So you can consider the extents to be in
-meters. Box2D generally works best when objects are the size of typical
+meters. CorePhys generally works best when objects are the size of typical
 real world objects. For example, a barrel is about 1 meter tall. Due to
-the limitations of floating point arithmetic, using Box2D to model the
+the limitations of floating point arithmetic, using CorePhys to model the
 movement of glaciers or dust particles might not work well.
 
 I'll finish the ground body in step 4 by creating the shape. For this step
@@ -90,7 +90,7 @@ b2ShapeDef groundShapeDef = b2DefaultShapeDef();
 b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
 ```
 
-Box2D does not keep a reference to the shape data. It copies the data into the internal
+CorePhys does not keep a reference to the shape data. It copies the data into the internal
 data structures.
 
 Note that every shape must have a parent body, even shapes that are
@@ -103,8 +103,8 @@ body. A shape does not have a transform independent of the body. So we
 don't move a shape around on the body. Moving or modifying a shape that
 is on a body is possible with certain functions, but it should not be part
 of normal simulation. The reason is simple: a body with
-morphing shapes is not a rigid body, but Box2D is a rigid body engine.
-Many of the algorithms in Box2D are based on the rigid body model and optimized with
+morphing shapes is not a rigid body, but CorePhys is a rigid body engine.
+Many of the algorithms in CorePhys are based on the rigid body model and optimized with
 that in mind. If this is violated you may get unexpected behavior.
 
 ## Creating a Dynamic Body
@@ -166,11 +166,11 @@ I have initialized the ground box and a dynamic box. Now we are
 ready to set Newton loose to do his thing. I just have a couple more
 issues to consider.
 
-Box2D uses a computational algorithm called an integrator. Integrators
+CorePhys uses a computational algorithm called an integrator. Integrators
 simulate the physics equations at discrete points of time. This goes
 along with the traditional game loop where we essentially have a flip
 book of movement on the screen. So we need to pick a time step for
-Box2D. Generally physics engines for games like a time step at least as
+CorePhys. Generally physics engines for games like a time step at least as
 fast as 60Hz or 1/60 seconds. You can get away with larger time steps,
 but you will have to be more careful about setting up your simulation.
 It is also not good for the time step to vary from frame to frame. A
@@ -182,18 +182,18 @@ here is the time step.
 float timeStep = 1.0f / 60.0f;
 ```
 
-In addition to the integrator, Box2D also uses a larger bit of code
+In addition to the integrator, CorePhys also uses a larger bit of code
 called a constraint solver. The constraint solver solves all the
 constraints in the simulation, one at a time. A single constraint can be
-solved perfectly. However, when Box2D solves one constraint, it slightly
-disrupts other constraints. To get a good solution, Box2D needs to iterate
+solved perfectly. However, when CorePhys solves one constraint, it slightly
+disrupts other constraints. To get a good solution, CorePhys needs to iterate
 over all constraints a number of times.
 
-Box2D uses sub-stepping as a means of constraint iteration. It lets the
+CorePhys uses sub-stepping as a means of constraint iteration. It lets the
 simulation move forward in time by small amounts and each constraint
 gets a chance to react to the changes.
 
-The suggested sub-step count for Box2D is 4. You can tune this number
+The suggested sub-step count for CorePhys is 4. You can tune this number
 to your liking, just keep in mind that this has a trade-off between
 performance and accuracy. Using fewer sub-steps increases performance
 but accuracy suffers. Likewise, using

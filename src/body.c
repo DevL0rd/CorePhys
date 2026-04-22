@@ -15,8 +15,8 @@
 #include "shape.h"
 #include "solver_set.h"
 
-#include "box2d/box2d.h"
-#include "box2d/id.h"
+#include "corephys/corephys.h"
+#include "corephys/id.h"
 
 #include <string.h>
 

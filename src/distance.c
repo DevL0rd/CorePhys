@@ -4,9 +4,9 @@
 
 #include "core.h"
 
-#include "box2d/collision.h"
-#include "box2d/constants.h"
-#include "box2d/math_functions.h"
+#include "corephys/collision.h"
+#include "corephys/constants.h"
+#include "corephys/math_functions.h"
 
 #include <float.h>
 #include <stddef.h>
@@ -419,7 +419,7 @@ static b2Vec2 b2SolveSimplex3( b2Simplex* s )
 }
 
 // Uses GJK for computing the distance between convex shapes.
-// https://box2d.org/files/ErinCatto_GJK_GDC2010.pdf
+// https://github.com/DevL0rd/CorePhys/files/ErinCatto_GJK_GDC2010.pdf
 // I spent time optimizing this and could find no further significant gains 3/30/2025
 b2DistanceOutput b2ShapeDistance( const b2DistanceInput* input, b2SimplexCache* cache, b2Simplex* simplexes, int simplexCapacity )
 {

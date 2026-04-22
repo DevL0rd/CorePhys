@@ -502,7 +502,7 @@ B2_API b2TOIOutput b2TimeOfImpact( const b2TOIInput* input );
 
 /// A manifold point is a contact point belonging to a contact manifold.
 /// It holds details related to the geometry and dynamics of the contact points.
-/// Box2D uses speculative collision so some contact points may be separated.
+/// CorePhys uses speculative collision so some contact points may be separated.
 /// You may use the totalNormalImpulse to determine if there was an interaction during
 /// the time step.
 typedef struct b2ManifoldPoint
@@ -515,13 +515,13 @@ typedef struct b2ManifoldPoint
 	/// Location of the contact point relative to shapeA's origin in world space.
 	/// This can be converted to a world point using:
 	/// b2Vec2 worldPointA = b2Add(b2Body_GetCenter(myBodyIdA), anchorA);
-	/// @note When used internally to the Box2D solver, this is relative to the body center of mass.
+	/// @note When used internally to the CorePhys solver, this is relative to the body center of mass.
 	b2Vec2 anchorA;
 
 	/// Location of the contact point relative to shapeB's origin in world space
 	/// This can be converted to a world point using:
 	/// b2Vec2 worldPointB = b2Add(b2Body_GetCenter(myBodyIdB), anchorB);
-	/// @note When used internally to the Box2D solver, this is relative to the body center of mass.
+	/// @note When used internally to the CorePhys solver, this is relative to the body center of mass.
 	b2Vec2 anchorB;
 
 	/// The separation of the contact point, negative if penetrating
@@ -554,7 +554,7 @@ typedef struct b2ManifoldPoint
 } b2ManifoldPoint;
 
 /// A contact manifold describes the contact points between colliding shapes.
-/// @note Box2D uses speculative collision so some contact points may be separated.
+/// @note CorePhys uses speculative collision so some contact points may be separated.
 typedef struct b2Manifold
 {
 	/// The unit normal vector in world space, points from shape A to bodyB
@@ -622,9 +622,9 @@ B2_API b2Manifold b2CollideChainSegmentAndPolygon( const b2ChainSegment* segment
  * @defgroup tree Dynamic Tree
  * The dynamic tree is a binary AABB tree to organize and query large numbers of geometric objects
  *
- * Box2D uses the dynamic tree internally to sort collision shapes into a binary bounding volume hierarchy.
+ * CorePhys uses the dynamic tree internally to sort collision shapes into a binary bounding volume hierarchy.
  * This data structure may have uses in games for organizing other geometry data and may be used independently
- * of Box2D rigid body simulation.
+ * of CorePhys rigid body simulation.
  *
  * A dynamic AABB tree broad-phase, inspired by Nathanael Presson's btDbvt.
  * A dynamic tree arranges data in a binary tree to accelerate

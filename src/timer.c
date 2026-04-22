@@ -3,7 +3,7 @@
 
 #include "core.h"
 
-#include "box2d/base.h"
+#include "corephys/base.h"
 
 #include <stddef.h>
 

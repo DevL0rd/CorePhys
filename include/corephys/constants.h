@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 // Used to detect bad values. Positions greater than about 16km will have precision
 // problems, so 100km as a limit should be fine in all cases.
@@ -33,7 +33,7 @@
 // @warning increasing this to 0.5f * b2_pi or greater will break continuous collision.
 #define B2_MAX_ROTATION ( 0.25f * B2_PI )
 
-// Box2D uses limited speculative collision. This reduces jitter.
+// CorePhys uses limited speculative collision. This reduces jitter.
 // Normally this is 2cm.
 // @warning modifying this can have a significant impact on performance and stability
 #define B2_SPECULATIVE_DISTANCE ( 4.0f * B2_LINEAR_SLOP )

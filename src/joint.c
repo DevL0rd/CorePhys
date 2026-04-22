@@ -13,7 +13,7 @@
 #include "solver_set.h"
 
 // needed for dll export
-#include "box2d/box2d.h"
+#include "corephys/corephys.h"
 
 #include <stddef.h>
 #include <stdio.h>

@@ -3,8 +3,8 @@
 
 #include "test_macros.h"
 
-#include "box2d/collision.h"
-#include "box2d/math_functions.h"
+#include "corephys/collision.h"
+#include "corephys/math_functions.h"
 
 #include <float.h>
 

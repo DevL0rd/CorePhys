@@ -1,6 +1,6 @@
 # Simulation
-Rigid body simulation is the primary feature of Box2D. It is the most complex part of
-Box2D and is the part you will likely interact with the most. Simulation sits on top of
+Rigid body simulation is the primary feature of CorePhys. It is the most complex part of
+CorePhys and is the part you will likely interact with the most. Simulation sits on top of
 the foundation and collision layers, so you should be somewhat familiar with those by now.
 
 Rigid body simulation contains:
@@ -18,25 +18,25 @@ Therefore, you may want to quickly skim this section before reading it
 closely.
 
 ## Ids
-Box2D has a C interface. Typically in a C/C++ library when you create an object with a long lifetime
+CorePhys has a C interface. Typically in a C/C++ library when you create an object with a long lifetime
 you will keep a pointer (or smart pointer) to the object.
 
-Box2D works differently. Instead of pointers, you are given an *id* when you create an object.
+CorePhys works differently. Instead of pointers, you are given an *id* when you create an object.
 This *id* acts as a [handle](https://en.wikipedia.org/wiki/Handle_(computing)) which helps avoid
 problems with [dangling pointers](https://en.wikipedia.org/wiki/Dangling_pointer).
 
-This also allows Box2D to use [data-oriented design](https://en.wikipedia.org/wiki/Data-oriented_design) internally.
+This also allows CorePhys to use [data-oriented design](https://en.wikipedia.org/wiki/Data-oriented_design) internally.
 This helps to reduce cache misses drastically and also allows for [SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data) optimizations.
 
 So you will be dealing with `b2WorldId`, `b2BodyId`, etc. These are small opaque structures that you
-will pass around by value, just like pointers. Box2D creation functions return an id. Functions
-that operate on Box2D objects take ids.
+will pass around by value, just like pointers. CorePhys creation functions return an id. Functions
+that operate on CorePhys objects take ids.
 
 ```c
 b2BodyId myBodyId = b2CreateBody(myWorldId, &myBodyDef);
 ```
 
-There are functions to check if an id is valid. Box2D functions will assert if you use an invalid id.
+There are functions to check if an id is valid. CorePhys functions will assert if you use an invalid id.
 This makes debugging easier than using dangling pointers.
 
 ```c
@@ -68,9 +68,9 @@ if (B2_IS_NON_NULL(myShapeId))
 ```
 
 ## World
-The Box2D world contains the bodies and joints. It manages all aspects
+The CorePhys world contains the bodies and joints. It manages all aspects
 of the simulation and allows for asynchronous queries (like AABB queries
-and ray-casts). Much of your interactions with Box2D will be with a
+and ray-casts). Much of your interactions with CorePhys will be with a
 world object, using `b2WorldId`.
 
 ### World Definition
@@ -167,14 +167,14 @@ are the body type definitions:
 ### Body types
 #b2_staticBody:
 A static body does not move under simulation and behaves as if it has infinite mass.
-Internally, Box2D stores zero for the mass and the inverse mass. A static body has zero
+Internally, CorePhys stores zero for the mass and the inverse mass. A static body has zero
 velocity. Static bodies do not collide with other static or kinematic bodies.
 
 #b2_kinematicBody:
 A kinematic body moves under simulation according to its velocity.
 Kinematic bodies do not respond to forces. A kinematic body is moved by setting its
 velocity. A kinematic body behaves as if it has infinite mass, however,
-Box2D stores zero for the mass and the inverse mass. Kinematic bodies do
+CorePhys stores zero for the mass and the inverse mass. Kinematic bodies do
 not collide with other kinematic or static bodies. Generally you should use
 a kinematic body if you want a shape to be animated and not affected by
 forces or collisions.
@@ -186,10 +186,10 @@ finite, non-zero mass.
 
 > **Caution**:
 > Generally you should not set the transform on bodies after creation.
-> Box2D treats this as a teleport and may result in undesirable behavior and/or performance problems.
+> CorePhys treats this as a teleport and may result in undesirable behavior and/or performance problems.
 
 Bodies carry shapes and moves them around in the world. Bodies are always
-rigid bodies in Box2D. That means that two shapes attached to the same rigid body never move
+rigid bodies in CorePhys. That means that two shapes attached to the same rigid body never move
 relative to each other and shapes attached to the same body don't collide.
 
 Shapes have collision geometry and density. Normally, bodies acquire
@@ -206,7 +206,7 @@ Before a body is created you must create a body definition (`b2BodyDef`).
 The body definition holds the data needed to create and initialize a
 body correctly.
 
-Because Box2D uses a C API, a function is provided to create a default
+Because CorePhys uses a C API, a function is provided to create a default
 body definition.
 
 ```c
@@ -215,7 +215,7 @@ b2BodyDef myBodyDef = b2DefaultBodyDef();
 
 This ensures the body definition is valid and this initialization is **mandatory**.
 
-Box2D copies the data out of the body definition; it does not keep a
+CorePhys copies the data out of the body definition; it does not keep a
 pointer to the body definition. This means you can recycle a body
 definition to create multiple bodies.
 
@@ -244,7 +244,7 @@ A body has two main points of interest. The first point is the body's
 origin. Shapes and joints are attached relative to the body's origin.
 The second point of interest is the center of mass. The center of mass
 is determined from the mass distribution of the attached shapes or is
-explicitly set using `b2MassData`. Much of Box2D's internal computations
+explicitly set using `b2MassData`. Much of CorePhys's internal computations
 use the center of mass position. For example the body stores the linear
 velocity for the center of mass, not the body origin.
 
@@ -309,7 +309,7 @@ exponential function gives the update formula:
 v(t + h) \approx \frac{1}{1 + c h} v(t)
 \f]
 
-This is the formula used in the Box2D solver.
+This is the formula used in the CorePhys solver.
 
 ### Gravity Scale
 You can use the gravity scale to adjust the gravity on a single body. Be
@@ -325,7 +325,7 @@ What does sleep mean? Well it is expensive to simulate bodies, so the
 less we have to simulate the better. When a body comes to rest we would
 like to stop simulating it.
 
-When Box2D determines that a body (or group of bodies) has come to rest,
+When CorePhys determines that a body (or group of bodies) has come to rest,
 the body enters a sleep state which has very little CPU overhead. If a
 body is awake and collides with a sleeping body, then the sleeping body
 wakes up. Bodies will also wake up if a joint or contact attached to
@@ -361,7 +361,7 @@ a physics engine doesn't account for the large motion, you may see some
 objects incorrectly pass through each other. This effect is called
 *tunneling*.
 
-By default, Box2D uses continuous collision detection (CCD) to prevent
+By default, CorePhys uses continuous collision detection (CCD) to prevent
 dynamic bodies from tunneling through static bodies. This is done by
 sweeping shapes from their old position to their new positions. The
 engine looks for new collisions during the sweep and computes the time
@@ -374,7 +374,7 @@ to use CCD. For example, you may want to shoot a high speed bullet at a
 stack of dynamic bricks. Without CCD, the bullet might tunnel through
 the bricks.
 
-Fast moving objects in Box2D can be configured as *bullets*. Bullets will
+Fast moving objects in CorePhys can be configured as *bullets*. Bullets will
 perform CCD with all body types, but **not** other bullets. You should decide what
 bodies should be bullets based on your game design. If you decide a body
 should be treated as a bullet, use the following setting.
@@ -439,11 +439,11 @@ b2DestroyBody(myBodyId);
 myBodyId = b2_nullBodyId;
 ```
 
-Box2D does not keep a reference to the body definition or any of the
+CorePhys does not keep a reference to the body definition or any of the
 data it holds (except user data pointers). So you can create temporary
 body definitions and reuse the same body definitions.
 
-Box2D allows you to avoid destroying bodies by destroying the world
+CorePhys allows you to avoid destroying bodies by destroying the world
 directly using `b2DestroyWorld()`, which does all the cleanup work for you.
 However, you should be mindful to nullify body ids that you keep in your application.
 
@@ -517,10 +517,10 @@ Please see the comments on these functions for more details.
 ### Position and Velocity
 You can access the position and rotation of a body. This is common when
 rendering your associated game object. You can also set the position and angle,
-although this is less common since you will normally use Box2D to
+although this is less common since you will normally use CorePhys to
 simulate movement.
 
-Keep in mind that the Box2D interface uses *radians*.
+Keep in mind that the CorePhys interface uses *radians*.
 
 ```c
 b2Body_SetTransform(myBodyId, position, rotation);
@@ -531,7 +531,7 @@ float angleInRadians = b2Rot_GetAngle(rotation);
 ```
 
 You can access the center of mass position in local and world
-coordinates. Much of the internal simulation in Box2D uses the center of
+coordinates. Much of the internal simulation in CorePhys uses the center of
 mass. However, you should normally not need to access it. Instead you
 will usually work with the body transform. For example, you may have a
 body that is square. The body origin might be a corner of the square,
@@ -544,7 +544,7 @@ b2Vec2 localCenter = b2Body_GetLocalCenterOfMass(myBodyId);
 
 You can access the linear and angular velocity. The linear velocity is
 for the center of mass. Therefore, the linear velocity may change if the
-mass properties change. Since Box2D uses radians, the angular velocity is
+mass properties change. Since CorePhys uses radians, the angular velocity is
 in radians per second.
 
 ```c
@@ -585,8 +585,8 @@ b2Body_ApplyLinearImpulseToCenter(myBodyId, linearImpulse, wake);
 ```
 
 > **Caution**:
-> Since Box2D uses sub-stepping, you should not apply a steady impulse
-> for several frames. Instead you should apply a force which Box2D will
+> Since CorePhys uses sub-stepping, you should not apply a steady impulse
+> for several frames. Instead you should apply a force which CorePhys will
 > spread out evenly across the sub-steps, resulting in smoother movement.
 
 ### Coordinate Transformations
@@ -631,7 +631,7 @@ While you can gather transforms from all your bodies after every time step, this
 Many bodies may not have moved because they are sleeping. Also iterating across many bodies
 will have lots of cache misses.
 
-Box2D provides `b2BodyEvents` that you can access after every call to `b2World_Step()` to get
+CorePhys provides `b2BodyEvents` that you can access after every call to `b2World_Step()` to get
 an array of body movement events. Since this data is contiguous, it is cache friendly.
 
 ```c
@@ -716,14 +716,14 @@ b2Body_ApplyMassFromShapes(myBodyId);
 
 ### Friction
 Friction is used to make objects slide along each other realistically.
-Box2D supports static and dynamic friction, but uses the same parameter
-for both. Box2D attempts to simulate friction accurately and the friction
+CorePhys supports static and dynamic friction, but uses the same parameter
+for both. CorePhys attempts to simulate friction accurately and the friction
 strength is proportional to the normal force. This is called [Coulomb
 friction](https://en.wikipedia.org/wiki/Friction). The friction parameter
 is usually set between 0 and 1, but
 can be any non-negative value. A friction value of 0 turns off friction
 and a value of 1 makes the friction strong. When the friction force is
-computed between two shapes, Box2D must combine the friction parameters
+computed between two shapes, CorePhys must combine the friction parameters
 of the two parent shapes. This is done with the
 [geometric mean](https://en.wikipedia.org/wiki/Geometric_mean):
 
@@ -750,7 +750,7 @@ Restitution is combined this way so that you can have a bouncy super
 ball without having a bouncy floor.
 
 When a shape develops multiple contacts, restitution is simulated
-approximately. This is because Box2D uses a sequential solver. Box2D
+approximately. This is because CorePhys uses a sequential solver. CorePhys
 also uses inelastic collisions when the collision velocity is small.
 This is done to prevent jitter. See `b2WorldDef::restitutionThreshold`.
 
@@ -779,10 +779,10 @@ Collision filtering allows you to efficiently prevent collision between shapes.
 For example, say you make a character that rides a bicycle. You want the
 bicycle to collide with the terrain and the character to collide with
 the terrain, but you don't want the character to collide with the
-bicycle (because they must overlap). Box2D supports such collision
+bicycle (because they must overlap). CorePhys supports such collision
 filtering using categories, masks, and groups.
 
-Box2D supports 64 collision categories. For each shape you can specify
+CorePhys supports 64 collision categories. For each shape you can specify
 which category it belongs to. You can also specify what other categories
 this shape can collide with. For example, you could specify in a
 multiplayer game that players don't collide with each other. Rather
@@ -845,7 +845,7 @@ according the category and mask bits. If two shapes have the
 same non-zero group index, then this overrides the category and mask.
 Collision groups have a higher priority than categories and masks.
 
-Note that additional collision filtering occurs automatically in Box2D. Here is a
+Note that additional collision filtering occurs automatically in CorePhys. Here is a
 list:
 - A shape on a static body can only collide with a dynamic body.
 - A shape on a kinematic body can only collide with a dynamic body.
@@ -1028,16 +1028,16 @@ Sensor events are only enabled for shapes and sensors if b2ShapeDef::enableSenso
 > sensor events, potentially causing bugs in game logic.
 
 ## Contacts
-Contacts are internal objects created by Box2D to manage collision between pairs of
+Contacts are internal objects created by CorePhys to manage collision between pairs of
 shapes. They are fundamental to rigid body simulation in games.
 
 ### Terminology
 Contacts have a fair bit of terminology that are important to review.
 
 #### contact point
-A contact point is a point where two shapes touch. Box2D approximates
+A contact point is a point where two shapes touch. CorePhys approximates
 contact with a small number of points. Specifically, contact between
-two shapes has 0, 1, or 2 points. This is possible because Box2D uses
+two shapes has 0, 1, or 2 points. This is possible because CorePhys uses
 convex shapes.
 
 #### contact normal
@@ -1056,23 +1056,23 @@ contact.
 
 #### normal impulse
 The normal force is the force applied at a contact point to prevent the
-shapes from penetrating. For convenience, Box2D uses impulses. The
+shapes from penetrating. For convenience, CorePhys uses impulses. The
 normal impulse is just the normal force multiplied by the time step. Since
-Box2D uses sub-stepping, this is the sub-step time step.
+CorePhys uses sub-stepping, this is the sub-step time step.
 
 #### tangent impulse
 The tangent force is generated at a contact point to simulate friction.
 For convenience, this is stored as an impulse.
 
 #### contact point id
-Box2D tries to re-use the contact impulse results from a time step as the
-initial guess for the next time step. Box2D uses contact point ids to match
+CorePhys tries to re-use the contact impulse results from a time step as the
+initial guess for the next time step. CorePhys uses contact point ids to match
 contact points across time steps. The ids contain geometric feature
 indices that help to distinguish one contact point from another.
 
 #### speculative contact
-When two shapes are close together, Box2D will create up to two contact
-points even if the shapes are not touching. This lets Box2D anticipate
+When two shapes are close together, CorePhys will create up to two contact
+points even if the shapes are not touching. This lets CorePhys anticipate
 collision to improve behavior. Speculative contact points have positive
 separation.
 
@@ -1086,12 +1086,12 @@ are not touching (just their AABBs). Well, this is correct. It's a
 \"chicken or egg\" problem. We don't know if we need a contact object
 until one is created to analyze the collision. We could delete the
 contact right away if the shapes are not touching, or we can just wait
-until the AABBs stop overlapping. Box2D takes the latter approach
+until the AABBs stop overlapping. CorePhys takes the latter approach
 because it lets the system cache information to improve performance.
 
 ### Contact Data
 As mentioned before, the contact is created and destroyed by
-Box2D automatically. Contact data is not created by the user. However, you are
+CorePhys automatically. Contact data is not created by the user. However, you are
 able to access the contact data.
 
 You can get contact data from shapes or bodies. The contact data
@@ -1205,7 +1205,7 @@ for (int i = 0; i < contactEvents.hitCount; ++i)
 
 Shapes only generate hit events if `b2ShapeDef::enableHitEvents` is true.
 I recommend you only enable this for shapes that need hit events because
-it creates some overhead. Box2D also only reports hit events that have an
+it creates some overhead. CorePhys also only reports hit events that have an
 approach speed larger than `b2WorldDef::hitEventThreshold`.
 
 ### Contact Filtering
@@ -1234,7 +1234,7 @@ bool MyCustomFilter(b2ShapeId shapeIdA, b2ShapeId shapeIdB, void* context)
 b2World_SetCustomFilterCallback(myWorldId, MyCustomFilter, myGame);
 ```
 
-This function must be [thread-safe](https://en.wikipedia.org/wiki/Thread_safety) and must not read from or write to the Box2D world. Otherwise you will get a [race condition](https://en.wikipedia.org/wiki/Race_condition). 
+This function must be [thread-safe](https://en.wikipedia.org/wiki/Thread_safety) and must not read from or write to the CorePhys world. Otherwise you will get a [race condition](https://en.wikipedia.org/wiki/Race_condition). 
 
 #### Pre-Solve Callback
 This is called after collision detection, but before collision
@@ -1242,7 +1242,7 @@ resolution. This gives you a chance to disable the contact based on the contact 
 
 The contact will be re-enabled each time through collision processing,
 so you will need to disable the contact every time-step. This function must be thread-safe
-and must not read from or write to the Box2D world.
+and must not read from or write to the CorePhys world.
 
 ```c
 bool MyPreSolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context)
@@ -1302,7 +1302,7 @@ Boolean to allow collision between two connected bodies.
 
 Many joint definitions require that you provide some geometric data.
 Often a joint will be defined by anchor points. These are points fixed
-in the attached bodies. Box2D requires these points to be specified in
+in the attached bodies. CorePhys requires these points to be specified in
 local coordinates. This way the joint can be specified even when the
 current body transforms violate the joint constraint. Additionally, some joint
 definitions need a reference angle between the bodies.
@@ -1337,7 +1337,7 @@ It is always good to nullify your ids after they are destroyed.
 Joint lifetime is related to body lifetime. Joints cannot exist detached from a body. 
 So when a body is destroyed, all joints attached to that body are automatically destroyed.
 This means you need to be careful to avoid using joint ids when the attached body was
-destroyed. Box2D will assert if you use a dangling joint id.
+destroyed. CorePhys will assert if you use a dangling joint id.
 
 > **Caution**:
 > Joints are destroyed when an attached body is destroyed.
@@ -1374,7 +1374,7 @@ void* myUserData = b2Joint_GetUserData(myJointId);
 
 All joints have a reaction force and torque. Reaction forces are
 related to the [free body diagram](https://en.wikipedia.org/wiki/Free_body_diagram).
-The Box2D convention is that the reaction force
+The CorePhys convention is that the reaction force
 is applied to body B at the anchor point. You can use reaction forces to
 break joints or trigger other game events. These functions may do some
 computations, so don't call them if you don't need the result.
@@ -1460,7 +1460,7 @@ b2JointId myJointId = b2CreateRevoluteJoint(myWorldId, &jointDef);
 
 The revolute joint angle is positive when bodyB rotates counter-clockwise
 about the
-anchor point. Like all angles in Box2D, the revolute angle is measured in
+anchor point. Like all angles in CorePhys, the revolute angle is measured in
 radians. By convention the revolute joint angle is zero when the two bodies
 have equal angles. You can offset this using `b2RevoluteJointDef::referenceAngle`.
 
@@ -1616,7 +1616,7 @@ bodies. See the `Cantilever` sample to see how the weld joint
 behaves.
 
 It is tempting to use the weld joint to define breakable structures.
-However, the Box2D solver is approximate so the joints can be soft in some
+However, the CorePhys solver is approximate so the joints can be soft in some
 cases regardless of the joint settings. So chains of bodies connected by weld
 joints may flex.
 
@@ -1656,7 +1656,7 @@ ray-casts, and shape-casts. These allow you to do things like:
 
 ### Overlap Queries
 Sometimes you want to determine all the shapes in a region. The world has a fast
-log(N) method for this using the broad-phase data structure. Box2D provides these
+log(N) method for this using the broad-phase data structure. CorePhys provides these
 overlap tests:
 - axis-aligned bound box (AABB) overlap
 - shape proxy overlap
@@ -1841,7 +1841,7 @@ Just like ray-casts, shape-casts results may be sent to the callback in any orde
 
 ![Simulation Loop](images/simulation_loop.svg)
 
-The Box2D simulation loop can be useful to understand when you process results.
+The CorePhys simulation loop can be useful to understand when you process results.
 
 Multithreading is represented in the diagram.
 - rectangles are parallel-for work
@@ -1853,7 +1853,7 @@ Let's review each of these stages.
 The game starts the simulation by calling `b2World_Step` supplying the time step.
 
 ### find pairs
-Box2D maintains a record of every shape that has moved. For each of these shapes the broad-phase
+CorePhys maintains a record of every shape that has moved. For each of these shapes the broad-phase
 (BVH) is queried for overlaps. New overlaps are recorded for processing in the next step. I avoid reporting
 existing overlaps by using a hash table that records all existing shape pairs. This operation is a parallel-for.
 
@@ -1921,7 +1921,7 @@ This can result in an inefficient BVH. This is the reason for the `rebuild BVH` 
 BVH but is necessary to ensure the BVH is valid for subsequent queries, such as ray casts.
 
 ### bullets
-This is where bullets are processed. Not that this comes after hit events because continuous collision in Box2D does not
+This is where bullets are processed. Not that this comes after hit events because continuous collision in CorePhys does not
 generate events until the next time step.
 
 ### island sleep
@@ -1931,20 +1931,20 @@ When an island goes to sleep the simulation data associated with that island is 
 Sensor overlaps are checked in the final stage. The overlap state reflects the final body transform. Sensors do not consider sleep so they may react to the user setting a body transform or creating a sleeping body. This is a parallel-for operation. The cost is roughly proportional to the number of sensors.
 
 ## Determinism
-Box2D is designed to be deterministic across thread counts and platforms. I believe this is important for debugging and game design.
+CorePhys is designed to be deterministic across thread counts and platforms. I believe this is important for debugging and game design.
 
 Multithreaded determinism is achieved by basing simulation order on creation order. This includes bodies, shapes, and joint creation order. Determinism includes results reported to users (events). These events must be in deterministic order.
 
 Cross-platform determinism is achieved on 64-bit platforms by using compiler flags and by avoiding non-deterministic library functions.
 - precise math is used on MSVC
 - floating point contraction is disabled on clang and GCC
-- Box2D has custom implementations of atan2, cosine, and sine.
+- CorePhys has custom implementations of atan2, cosine, and sine.
 
-Determinism is on by default and there is no explicit option to disable it. However, you can break determinism by choosing different compiler flags. Box2D was designed to provide determinism with minimal cost. So there is no advantage to attempting
+Determinism is on by default and there is no explicit option to disable it. However, you can break determinism by choosing different compiler flags. CorePhys was designed to provide determinism with minimal cost. So there is no advantage to attempting
 to disable determinism.
 
 I maintain a unit test for determinism that is run for every pull request. Determinism is easy to break, so it is important to have regular validation.
 
 > **Caution**:
-> Box2D determinism does not mean your application will be deterministic. Consider using similar strategies to make your
-> application deterministic as I have used for Box2D.
+> CorePhys determinism does not mean your application will be deterministic. Consider using similar strategies to make your
+> application deterministic as I have used for CorePhys.

@@ -3,7 +3,7 @@
 > **Caution**:
 > The character mover feature is new to version 3.1 and should be considered experimental.
 
-Box2D provides a few structures and functions you can use to build a character mover.
+CorePhys provides a few structures and functions you can use to build a character mover.
 
 These features support a `geometric` character mover. This is like
 a `kinematic` mover except the character mover is not a rigid body and does

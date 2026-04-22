@@ -8,28 +8,28 @@
 // clang-format off
 // 
 // Shared library macros
-#if defined( _MSC_VER ) && defined( box2d_EXPORTS )
+#if defined( _MSC_VER ) && defined( corephys_EXPORTS )
 	// build the Windows DLL
-	#define BOX2D_EXPORT __declspec( dllexport )
-#elif defined( _MSC_VER ) && defined( BOX2D_DLL )
+	#define COREPHYS_EXPORT __declspec( dllexport )
+#elif defined( _MSC_VER ) && defined( COREPHYS_DLL )
 	// using the Windows DLL
-	#define BOX2D_EXPORT __declspec( dllimport )
-#elif defined( box2d_EXPORTS )
+	#define COREPHYS_EXPORT __declspec( dllimport )
+#elif defined( corephys_EXPORTS )
 	// building or using the shared library
-	#define BOX2D_EXPORT __attribute__( ( visibility( "default" ) ) )
+	#define COREPHYS_EXPORT __attribute__( ( visibility( "default" ) ) )
 #else
 	// static library
-	#define BOX2D_EXPORT
+	#define COREPHYS_EXPORT
 #endif
 
 // C++ macros
 #ifdef __cplusplus
-	#define B2_API extern "C" BOX2D_EXPORT
+	#define B2_API extern "C" COREPHYS_EXPORT
 	#define B2_INLINE inline
 	#define B2_LITERAL(T) T
 	#define B2_ZERO_INIT {}
 #else
-	#define B2_API BOX2D_EXPORT
+	#define B2_API COREPHYS_EXPORT
 	#define B2_INLINE static inline
 	/// Used for C literals like (b2Vec2){1.0f, 2.0f} where C++ requires b2Vec2{1.0f, 2.0f}
 	#define B2_LITERAL(T) (T)
@@ -37,7 +37,7 @@
 #endif
 // clang-format on
 
-#if defined( BOX2D_VALIDATE ) && !defined( NDEBUG )
+#if defined( COREPHYS_VALIDATE ) && !defined( NDEBUG )
 #define B2_ENABLE_VALIDATION 1
 #else
 #define B2_ENABLE_VALIDATION 0
@@ -69,7 +69,7 @@ typedef void b2LogFcn( const char* message );
 /// set during application startup.
 B2_API void b2SetAllocator( b2AllocFcn* allocFcn, b2FreeFcn* freeFcn );
 
-/// @return the total bytes allocated by Box2D
+/// @return the total bytes allocated by CorePhys
 B2_API int b2GetByteCount( void );
 
 /// Override the default assert function
@@ -94,7 +94,7 @@ typedef struct b2Version
 	int revision;
 } b2Version;
 
-/// Get the current version of Box2D
+/// Get the current version of CorePhys
 B2_API b2Version b2GetVersion( void );
 
 /**@}*/

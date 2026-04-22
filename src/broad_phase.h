@@ -6,8 +6,8 @@
 #include "array.h"
 #include "table.h"
 
-#include "box2d/collision.h"
-#include "box2d/types.h"
+#include "corephys/collision.h"
+#include "corephys/types.h"
 
 typedef struct b2Shape b2Shape;
 typedef struct b2MovePair b2MovePair;

@@ -3,7 +3,7 @@
 
 #include "test_macros.h"
 
-#include "box2d/id.h"
+#include "corephys/id.h"
 
 int IdTest( void )
 {

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "box2d/types.h"
+#include "corephys/types.h"
 
 typedef struct Camera
 {

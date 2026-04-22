@@ -17,7 +17,7 @@
  * You can add rigid bodies and joint constraints to the world and run the simulation. You can get contact
  * information to get contact points and normals as well as events. You can query to world, checking for overlaps and casting rays
  * or shapes. There is also debugging information such as debug draw, timing information, and counters. You can find documentation
- * here: https://box2d.org/
+ * here: https://github.com/DevL0rd/CorePhys
  * @{
  */
 
@@ -131,7 +131,7 @@ B2_API void b2World_SetCustomFilterCallback( b2WorldId worldId, b2CustomFilterFc
 /// Register the pre-solve callback. This is optional.
 B2_API void b2World_SetPreSolveCallback( b2WorldId worldId, b2PreSolveFcn* fcn, void* context );
 
-/// Set the gravity vector for the entire world. Box2D has no concept of an up direction and this
+/// Set the gravity vector for the entire world. CorePhys has no concept of an up direction and this
 /// is left as a decision for the application. Usually in m/s^2.
 /// @see b2WorldDef
 B2_API void b2World_SetGravity( b2WorldId worldId, b2Vec2 gravity );
@@ -193,7 +193,7 @@ B2_API void b2World_SetFrictionCallback( b2WorldId worldId, b2FrictionCallback* 
 /// Set the restitution callback. Passing NULL resets to default.
 B2_API void b2World_SetRestitutionCallback( b2WorldId worldId, b2RestitutionCallback* callback );
 
-/// Dump memory stats to box2d_memory.txt
+/// Dump memory stats to corephys_memory.txt
 B2_API void b2World_DumpMemoryStats( b2WorldId worldId );
 
 /// This is for internal testing
@@ -481,7 +481,7 @@ B2_API int b2Body_GetJoints( b2BodyId bodyId, b2JointId* jointArray, int capacit
 B2_API int b2Body_GetContactCapacity( b2BodyId bodyId );
 
 /// Get the touching contact data for a body.
-/// @note Box2D uses speculative collision so some contact points may be separated.
+/// @note CorePhys uses speculative collision so some contact points may be separated.
 /// @returns the number of elements filled in the provided array
 /// @warning do not ignore the return value, it specifies the valid number of elements
 B2_API int b2Body_GetContactData( b2BodyId bodyId, b2ContactData* contactData, int capacity );
@@ -667,7 +667,7 @@ B2_API b2ChainId b2Shape_GetParentChain( b2ShapeId shapeId );
 B2_API int b2Shape_GetContactCapacity( b2ShapeId shapeId );
 
 /// Get the touching contact data for a shape. The provided shapeId will be either shapeIdA or shapeIdB on the contact data.
-/// @note Box2D uses speculative collision so some contact points may be separated.
+/// @note CorePhys uses speculative collision so some contact points may be separated.
 /// @returns the number of elements filled in the provided array
 /// @warning do not ignore the return value, it specifies the valid number of elements
 B2_API int b2Shape_GetContactData( b2ShapeId shapeId, b2ContactData* contactData, int capacity );

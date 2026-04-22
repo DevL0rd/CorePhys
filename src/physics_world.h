@@ -11,7 +11,7 @@
 #include "id_pool.h"
 #include "arena_allocator.h"
 
-#include "box2d/types.h"
+#include "corephys/types.h"
 
 typedef struct b2Island b2Island;
 b2DeclareArray( b2Island );

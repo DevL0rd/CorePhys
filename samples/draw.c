@@ -10,7 +10,7 @@
 #include "container.h"
 #include "shader.h"
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 #include <stdarg.h>
 #include <stddef.h>

@@ -7,8 +7,8 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <imgui.h>
 #include <limits.h>
@@ -343,7 +343,7 @@ public:
 
 static int benchmarkBarrel = RegisterSample( "Benchmark", "Barrel", BenchmarkBarrel::Create );
 
-// This is used to compare performance with Box2D v2.4
+// This is used to compare performance with CorePhys v2.4
 class BenchmarkBarrel24 : public Sample
 {
 public:
@@ -1257,15 +1257,15 @@ public:
 					shapeDef.filter.categoryBits = 1 << category;
 					if ( category == 0 )
 					{
-						shapeDef.material.customColor = b2_colorBox2DBlue;
+						shapeDef.material.customColor = b2_colorCorePhysBlue;
 					}
 					else if ( category == 1 )
 					{
-						shapeDef.material.customColor = b2_colorBox2DYellow;
+						shapeDef.material.customColor = b2_colorCorePhysYellow;
 					}
 					else
 					{
-						shapeDef.material.customColor = b2_colorBox2DGreen;
+						shapeDef.material.customColor = b2_colorCorePhysGreen;
 					}
 
 					b2CreatePolygonShape( bodyId, &shapeDef, &box );
@@ -1747,8 +1747,8 @@ public:
 		b2Transform xfA = m_transformAs[m_drawIndex];
 		b2Transform xfB = m_transformBs[m_drawIndex];
 		b2DistanceOutput output = m_outputs[m_drawIndex];
-		DrawSolidPolygon( m_context->draw, xfA, m_polygonA.vertices, m_polygonA.count, m_polygonA.radius, b2_colorBox2DGreen );
-		DrawSolidPolygon( m_context->draw, xfB, m_polygonB.vertices, m_polygonB.count, m_polygonB.radius, b2_colorBox2DBlue );
+		DrawSolidPolygon( m_context->draw, xfA, m_polygonA.vertices, m_polygonA.count, m_polygonA.radius, b2_colorCorePhysGreen );
+		DrawSolidPolygon( m_context->draw, xfB, m_polygonB.vertices, m_polygonB.count, m_polygonB.radius, b2_colorCorePhysBlue );
 		DrawLine( m_context->draw, output.pointA, output.pointB, b2_colorDimGray );
 		DrawPoint( m_context->draw, output.pointA, 10.0f, b2_colorWhite );
 		DrawPoint( m_context->draw, output.pointB, 10.0f, b2_colorWhite );
@@ -2000,7 +2000,7 @@ public:
 
 static int benchmarkSensor = RegisterSample( "Benchmark", "Sensor", BenchmarkSensor::Create );
 
-// This benchmark pushes Box2D to the limit for a large pile. It terminates once simulation is deemed to be slow.
+// This benchmark pushes CorePhys to the limit for a large pile. It terminates once simulation is deemed to be slow.
 // The higher the body count achieved, the better.
 // Note: this benchmark stresses the sleep system more than any other benchmark. Better results are achieved if sleeping
 // is disabled.

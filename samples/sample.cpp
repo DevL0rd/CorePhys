@@ -16,9 +16,9 @@
 // consider using https://github.com/skeeto/pdjson
 #include "jsmn.h"
 
-#include "box2d/box2d.h"
-#include "box2d/constants.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/constants.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <ctype.h>

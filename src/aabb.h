@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "box2d/types.h"
+#include "corephys/types.h"
 
 // Ray cast an AABB
 b2CastOutput b2AABB_RayCast( b2AABB a, b2Vec2 p1, b2Vec2 p2 );

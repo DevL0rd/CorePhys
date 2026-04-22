@@ -3,7 +3,7 @@
 
 #include "test_macros.h"
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 #include <float.h>
 #include <stdio.h>

@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Erin Catto
 // SPDX-License-Identifier: MIT
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 #include <float.h>
 
-_Static_assert( sizeof( int32_t ) == sizeof( int ), "Box2D expects int32_t and int to be the same" );
+_Static_assert( sizeof( int32_t ) == sizeof( int ), "CorePhys expects int32_t and int to be the same" );
 
 bool b2IsValidFloat( float a )
 {

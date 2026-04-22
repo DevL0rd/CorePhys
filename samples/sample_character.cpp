@@ -4,8 +4,8 @@
 #include "draw.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>

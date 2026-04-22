@@ -11,7 +11,7 @@
 
 // needed for dll export
 #include "solver_set.h"
-#include "box2d/box2d.h"
+#include "corephys/corephys.h"
 
 #include <stddef.h>
 

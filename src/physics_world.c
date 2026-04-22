@@ -23,8 +23,8 @@
 #include "solver.h"
 #include "solver_set.h"
 
-#include "box2d/box2d.h"
-#include "box2d/constants.h"
+#include "corephys/corephys.h"
+#include "corephys/constants.h"
 
 #include <float.h>
 #include <stdio.h>
@@ -790,7 +790,7 @@ void b2World_Step( b2WorldId worldId, float timeStep, int subStepCount )
 		return;
 	}
 
-	b2TracyCZoneNC( world_step, "Step", b2_colorBox2DGreen, true );
+	b2TracyCZoneNC( world_step, "Step", b2_colorCorePhysGreen, true );
 
 	world->locked = true;
 	world->activeTaskCount = 0;
@@ -1802,7 +1802,7 @@ void b2World_SetRestitutionCallback( b2WorldId worldId, b2RestitutionCallback* c
 
 void b2World_DumpMemoryStats( b2WorldId worldId )
 {
-	FILE* file = fopen( "box2d_memory.txt", "w" );
+	FILE* file = fopen( "corephys_memory.txt", "w" );
 	if ( file == NULL )
 	{
 		return;
@@ -2407,7 +2407,7 @@ void b2World_Dump()
 		return;
 	}
 
-	b2OpenDump("box2d_dump.inl");
+	b2OpenDump("corephys_dump.inl");
 
 	b2Dump("b2Vec2 g(%.9g, %.9g);\n", m_gravity.x, m_gravity.y);
 	b2Dump("m_world->SetGravity(g);\n");

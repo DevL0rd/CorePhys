@@ -3,7 +3,7 @@
 
 #include "test_macros.h"
 
-#include "box2d/collision.h"
+#include "corephys/collision.h"
 
 static int TreeCreateDestroy( void )
 {

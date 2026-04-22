@@ -7,7 +7,7 @@
 #include "table.h"
 #include "test_macros.h"
 
-#include "box2d/base.h"
+#include "corephys/base.h"
 
 #define SET_SPAN 317
 #define ITEM_COUNT ( ( SET_SPAN * SET_SPAN - SET_SPAN ) / 2 )

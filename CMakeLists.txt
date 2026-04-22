@@ -4,8 +4,8 @@ include(CMakeDependentOption)
 
 project(corephys
 	VERSION 3.2.0
-	DESCRIPTION "CorePhys, a Jimokomi-focused 2D physics engine based on Box2D"
-	HOMEPAGE_URL "https://github.com/devl0rd/corephys"
+	DESCRIPTION "CorePhys, a Jimokomi-focused 2D physics engine"
+	HOMEPAGE_URL "https://github.com/DevL0rd/CorePhys"
 	LANGUAGES C CXX
 )
 
@@ -44,7 +44,7 @@ if (MSVC OR APPLE)
 endif()
 
 # Deterministic math
-# https://box2d.org/posts/2024/08/determinism/
+# Keep floating-point contraction disabled for deterministic physics results.
 if (MINGW OR APPLE OR UNIX)
 	add_compile_options(-ffp-contract=off)
 endif()

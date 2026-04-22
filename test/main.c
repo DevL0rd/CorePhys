@@ -49,7 +49,7 @@ int main( void )
 	//_CrtSetBreakAlloc(196);
 #endif
 
-	printf( "Starting Box2D unit tests\n" );
+	printf( "Starting CorePhys unit tests\n" );
 	printf( "======================================\n" );
 
 	RUN_TEST( TableTest );
@@ -65,7 +65,7 @@ int main( void )
 	RUN_TEST( WorldTest );
 
 	printf( "======================================\n" );
-	printf( "All Box2D tests passed!\n" );
+	printf( "All CorePhys tests passed!\n" );
 
 #if defined( _MSC_VER )
 	if ( _CrtDumpMemoryLeaks() )

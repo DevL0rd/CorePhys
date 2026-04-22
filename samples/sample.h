@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "box2d/id.h"
-#include "box2d/types.h"
+#include "corephys/id.h"
+#include "corephys/types.h"
 #include "draw.h"
 
 #define ARRAY_COUNT( A ) (int)( sizeof( A ) / sizeof( A[0] ) )

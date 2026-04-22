@@ -3,17 +3,17 @@
 
 #include "test_macros.h"
 
-#include "box2d/box2d.h"
-#include "box2d/collision.h"
-#include "box2d/constants.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/collision.h"
+#include "corephys/constants.h"
+#include "corephys/math_functions.h"
 
 #include <stdio.h>
 
 // This is a simple example of building and running a simulation
-// using Box2D. Here we create a large ground box and a small dynamic
+// using CorePhys. Here we create a large ground box and a small dynamic
 // box.
-// There are no graphics for this example. Box2D is meant to be used
+// There are no graphics for this example. CorePhys is meant to be used
 // with your rendering engine in your game engine.
 int HelloWorld( void )
 {

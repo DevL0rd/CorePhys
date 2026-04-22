@@ -5,9 +5,9 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/collision.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/collision.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -459,7 +459,7 @@ struct Proxy
 static bool QueryCallback( int32_t proxyId, uint64_t userData, void* context );
 static float RayCallback( const b2RayCastInput* input, int32_t proxyId, uint64_t userData, void* context );
 
-// Tests the Box2D bounding volume hierarchy (BVH). The dynamic tree
+// Tests the CorePhys bounding volume hierarchy (BVH). The dynamic tree
 // can be used independently as a spatial data structure.
 class DynamicTree : public Sample
 {

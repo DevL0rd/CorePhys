@@ -8,8 +8,8 @@
 #include "TaskScheduler_c.h"
 #include "benchmarks.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -44,8 +44,8 @@ typedef struct Benchmark
 
 typedef struct TaskData
 {
-	b2TaskCallback* box2dTask;
-	void* box2dContext;
+	b2TaskCallback* corephysTask;
+	void* corephysContext;
 } TaskData;
 
 enkiTaskScheduler* scheduler;
@@ -73,10 +73,10 @@ int GetNumberOfCores()
 void ExecuteRangeTask( uint32_t start, uint32_t end, uint32_t threadIndex, void* context )
 {
 	TaskData* data = context;
-	data->box2dTask( start, end, threadIndex, data->box2dContext );
+	data->corephysTask( start, end, threadIndex, data->corephysContext );
 }
 
-static void* EnqueueTask( b2TaskCallback* box2dTask, int itemCount, int minRange, void* box2dContext, void* userContext )
+static void* EnqueueTask( b2TaskCallback* corephysTask, int itemCount, int minRange, void* corephysContext, void* userContext )
 {
 	MAYBE_UNUSED( userContext );
 
@@ -84,8 +84,8 @@ static void* EnqueueTask( b2TaskCallback* box2dTask, int itemCount, int minRange
 	{
 		enkiTaskSet* task = tasks[taskCount];
 		TaskData* data = taskData + taskCount;
-		data->box2dTask = box2dTask;
-		data->box2dContext = box2dContext;
+		data->corephysTask = corephysTask;
+		data->corephysContext = corephysContext;
 
 		struct enkiParamsTaskSet params;
 		params.minRange = minRange;
@@ -103,7 +103,7 @@ static void* EnqueueTask( b2TaskCallback* box2dTask, int itemCount, int minRange
 	else
 	{
 		printf( "MAX_TASKS exceeded!!!\n" );
-		box2dTask( 0, itemCount, 0, box2dContext );
+		corephysTask( 0, itemCount, 0, corephysContext );
 		return NULL;
 	}
 }
@@ -127,7 +127,7 @@ static void MinProfile( b2Profile* p1, const b2Profile* p2 )
 	p1->sleepIslands = b2MinFloat( p1->sleepIslands, p2->sleepIslands );
 }
 
-// Box2D benchmark application. On Windows it is important to use affinity avoid cross CCD
+// CorePhys benchmark application. On Windows it is important to use affinity avoid cross CCD
 // usage or efficiency cores. Also on Windows create a power plan with Processor power management
 // Min/Max of 99%. This prevents boosting and makes the benchmarks more repeatable.
 // Affinity [0x01 0x02 0x04 0x08 0x10 0x20 0x40 0x80]
@@ -256,7 +256,7 @@ int main( int argc, char** argv )
 		singleWorkerCount = b2ClampInt( singleWorkerCount, 1, maxThreadCount );
 	}
 
-	printf( "Starting Box2D benchmarks\n" );
+	printf( "Starting CorePhys benchmarks\n" );
 	printf( "======================================\n" );
 
 	for ( int benchmarkIndex = 0; benchmarkIndex < benchmarkCount; ++benchmarkIndex )
@@ -417,7 +417,7 @@ int main( int argc, char** argv )
 	}
 
 	printf( "======================================\n" );
-	printf( "All Box2D benchmarks complete!\n" );
+	printf( "All CorePhys benchmarks complete!\n" );
 
 	free( profiles );
 	free( stepResults );

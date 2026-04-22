@@ -2,7 +2,7 @@
 
 ## User Data
 Bodies, shapes, and joints allow you to attach user data
-as a `void*`. This is handy when you are examining Box2D data
+as a `void*`. This is handy when you are examining CorePhys data
 structures and you want to determine how they relate to the objects in
 your game engine.
 
@@ -20,7 +20,7 @@ entity->bodyId = b2CreateBody(myWorldId, &bodyDef);
 Here are some examples of cases where you would need the user data:
 -   Applying damage to an entity using a collision result.
 -   Playing a scripted event if the player is inside an axis-aligned box.
--   Accessing a game structure when Box2D notifies you that a joint is
+-   Accessing a game structure when CorePhys notifies you that a joint is
     going to be destroyed.
 
 Keep in mind that user data is optional and you can put anything in it.
@@ -45,8 +45,8 @@ gluOrtho2D(lowerX, upperX, lowerY, upperY);
 ```
 
 If your game must work in pixel units then you could convert your
-length units from pixels to meters when passing values from Box2D.
-Likewise you should convert the values received from Box2D from meters
+length units from pixels to meters when passing values from CorePhys.
+Likewise you should convert the values received from CorePhys from meters
 to pixels. This will improve the stability of the physics simulation.
 
 You have to come up with a reasonable conversion factor. I suggest
@@ -77,32 +77,32 @@ make sure nothing breaks. You can also try adjusting it to improve
 stability.
 
 If this conversion is not possible, you can set the length units used
-by Box2D using `b2SetLengthUnitsPerMeter()`. This is experimental and not
+by CorePhys using `b2SetLengthUnitsPerMeter()`. This is experimental and not
 well tested.
 
 ## Debug Drawing
 You can implement the function pointers in `b2DebugDraw` struct to get detailed
-drawing of the Box2D world. Debug draw provides:
+drawing of the CorePhys world. Debug draw provides:
 - shapes
 - joints
 - broad-phase axis-aligned bounding boxes (AABBs)
 - center of mass
 - contact points
 
-This is the preferred method of drawing the Box2D simulation, rather
+This is the preferred method of drawing the CorePhys simulation, rather
 than accessing the data directly. The reason is that much of the
 necessary data is internal and subject to change.
 
-The samples application draws the Box2D world using the `b2DebugDraw`.
+The samples application draws the CorePhys world using the `b2DebugDraw`.
 
 ## Limitations
-Box2D uses several approximations to simulate rigid body physics
+CorePhys uses several approximations to simulate rigid body physics
 efficiently. This brings some limitations.
 
 Here are the current limitations:
 1. Extreme mass ratios may cause joint stretching and collision overlap.
-2. Box2D uses soft constraints to improve robustness. This can lead to joint and contact flexing.
+2. CorePhys uses soft constraints to improve robustness. This can lead to joint and contact flexing.
 3. Continuous collision does not handle all situations. For example, general dynamic versus dynamic continuous collision is not handled. [Bullets](#bullets) handle this in a limited way. This is done for performance reasons.
 4. Continuous collision does not handle joints. So you may see joint stretching on fast moving objects. Usually the joints recover after a few time steps.
-5. Box2D uses the [semi-implicit Euler method](https://en.wikipedia.org/wiki/Semi-implicit_Euler_method) to solve the [equations of motion](https://en.wikipedia.org/wiki/Equations_of_motion). It does not reproduce exactly the parabolic motion of projectiles and has only first-order accuracy. However it is fast and has good stability.
-6. Box2D uses the [Gauss-Seidel method](https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method) to solve constraints and achieve real-time performance. You will not get precisely rigid collisions or pixel perfect accuracy. Increasing the sub-step count will improve accuracy.
+5. CorePhys uses the [semi-implicit Euler method](https://en.wikipedia.org/wiki/Semi-implicit_Euler_method) to solve the [equations of motion](https://en.wikipedia.org/wiki/Equations_of_motion). It does not reproduce exactly the parabolic motion of projectiles and has only first-order accuracy. However it is fast and has good stability.
+6. CorePhys uses the [Gauss-Seidel method](https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method) to solve constraints and achieve real-time performance. You will not get precisely rigid collisions or pixel perfect accuracy. Increasing the sub-step count will improve accuracy.

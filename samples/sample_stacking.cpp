@@ -5,8 +5,8 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -135,7 +135,7 @@ public:
 
 static int sampleTiltedStack = RegisterSample( "Stacking", "Tilted Stack", TiltedStack::Create );
 
-// This sample shows some aspects of Box2D continuous collision:
+// This sample shows some aspects of CorePhys continuous collision:
 // - bullet dynamic bodies which support continuous collision with non-bullet dynamic bodies
 // - prevention of chain reaction tunneling
 // Try disabling continuous collision and firing a bullet. You might see a bullet push a

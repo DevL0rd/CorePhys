@@ -15,7 +15,7 @@
    version="1.1"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="manifolds.svg"
-   inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+   inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
   <defs
@@ -148,7 +148,7 @@
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 227,602.36218 79,-1 14,56 -91,43 z"
        id="path2816"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"
        inkscape:connector-curvature="0" />
@@ -156,7 +156,7 @@
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 246.19848,535.12334 80.64122,69.26034 -116.72691,8.47526 z"
        id="path2818"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"
        inkscape:connector-curvature="0" />
@@ -167,7 +167,7 @@
        height="7"
        x="224"
        y="608.36218"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958" />
     <rect
@@ -177,14 +177,14 @@
        height="7"
        x="303.5"
        y="602.36218"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 386,601.86218 79,-1 14,56 -91,43 z"
        id="path2816-7"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"
        inkscape:connector-curvature="0" />
@@ -192,7 +192,7 @@
        style="fill:none;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="path2866"
        transform="translate(-2,14)"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"
        cx="428.75"
@@ -205,14 +205,14 @@
        height="7"
        x="424.5"
        y="602.86218"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow2Mend)"
        d="m 264,601.36218 v -26.5"
        id="path3664"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"
        inkscape:connector-curvature="0" />
@@ -220,7 +220,7 @@
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow2Mend)"
        d="m 427.50961,601.02437 v -26.5"
        id="path3664-4"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"
        inkscape:connector-curvature="0" />
@@ -230,7 +230,7 @@
        x="208"
        y="731.86218"
        id="text4330"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"><tspan
          sodipodi:role="line"
@@ -244,7 +244,7 @@
        x="378.83105"
        y="731.86218"
        id="text4330-8"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\manifolds.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\manifolds.png"
        inkscape:export-xdpi="180.11958"
        inkscape:export-ydpi="180.11958"><tspan
          sodipodi:role="line"

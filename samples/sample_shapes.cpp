@@ -5,8 +5,8 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -755,7 +755,7 @@ public:
 
 static int sampleCustomFilter = RegisterSample( "Shapes", "Custom Filter", CustomFilter::Create );
 
-// Restitution is approximate since Box2D uses speculative collision
+// Restitution is approximate since CorePhys uses speculative collision
 class Restitution : public Sample
 {
 public:
@@ -1767,8 +1767,8 @@ public:
 
 		DrawTextLine( "reference angle = %g", m_referenceAngle );
 
-		DrawCircle( m_draw, b2Vec2_zero, m_radius + m_falloff, b2_colorBox2DBlue );
-		DrawCircle( m_draw, b2Vec2_zero, m_radius, b2_colorBox2DYellow );
+		DrawCircle( m_draw, b2Vec2_zero, m_radius + m_falloff, b2_colorCorePhysBlue );
+		DrawCircle( m_draw, b2Vec2_zero, m_radius, b2_colorCorePhysYellow );
 	}
 
 	static Sample* Create( SampleContext* context )

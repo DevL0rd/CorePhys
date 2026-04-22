@@ -9,7 +9,7 @@
 #include "solver_set.h"
 
 // needed for dll export
-#include "box2d/box2d.h"
+#include "corephys/corephys.h"
 
 void b2MotorJoint_SetLinearVelocity( b2JointId jointId, b2Vec2 velocity )
 {

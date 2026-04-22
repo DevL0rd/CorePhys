@@ -6,8 +6,8 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -1033,7 +1033,7 @@ public:
 
 static int sampleSpeculativeSliver = RegisterSample( "Continuous", "Speculative Sliver", SpeculativeSliver::Create );
 
-// This shows that while Box2D uses speculative collision, it does not lead to speculative ghost collisions at small distances
+// This shows that while CorePhys uses speculative collision, it does not lead to speculative ghost collisions at small distances
 class SpeculativeGhost : public Sample
 {
 public:
@@ -1082,7 +1082,7 @@ public:
 
 static int sampleSpeculativeGhost = RegisterSample( "Continuous", "Speculative Ghost", SpeculativeGhost::Create );
 
-// This shows that Box2D does not have pixel perfect collision.
+// This shows that CorePhys does not have pixel perfect collision.
 class PixelImperfect : public Sample
 {
 public:

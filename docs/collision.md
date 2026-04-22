@@ -1,5 +1,5 @@
 # Collision
-Box2D provides geometric types and functions. These include:
+CorePhys provides geometric types and functions. These include:
 - primitives: circles, capsules, segments, and convex polygons
 - convex hull and related helper functions
 - mass and bounding box computation
@@ -13,7 +13,7 @@ Box2D provides geometric types and functions. These include:
 The collision interface is designed to be usable outside of rigid body simulation.
 For example, you can use the dynamic tree for other aspects of your game besides physics.
 
-However, the main purpose of Box2D is to be a rigid body physics
+However, the main purpose of CorePhys is to be a rigid body physics
 engine. So the collision interface only contains features that are also useful in
 the physics simulation.
 
@@ -22,7 +22,7 @@ Shape primitives describe collision geometry and may be used independently of
 physics simulation. At a minimum, you should understand how to create
 primitives that can be later attached to rigid bodies.
 
-Box2D shape primitives support several operations:
+CorePhys shape primitives support several operations:
 - Test a point for overlap with the primitive
 - Perform a ray cast against the primitive
 - Compute the primitive's bounding box
@@ -59,7 +59,7 @@ capsule.radius = 0.25f;
 ```
 
 ### Polygons
-Box2D polygons are solid convex polygons. A polygon is convex when all
+CorePhys polygons are solid convex polygons. A polygon is convex when all
 line segments connecting two points in the interior do not cross any
 edge of the polygon. Polygons are solid and never hollow. A polygon must
 have 3 or more vertices.
@@ -78,7 +78,7 @@ The polygon members are public, but you should use initialization
 functions to create a polygon. The initialization functions create
 normal vectors and perform validation.
 
-Polygons in Box2D have a maximum of 8 vertices, as controlled by #B2_MAX_POLYGON_VERTICES.
+Polygons in CorePhys have a maximum of 8 vertices, as controlled by #B2_MAX_POLYGON_VERTICES.
 If you have more complex shapes, I recommend to use multiple polygons.
 
 There are a few ways to create polygons. You can attempt to create them manually,
@@ -94,7 +94,7 @@ b2Polygon box = b2MakeBox(0.5f, 1.0f);
 The values provided to these functions are *extents*, which are half-widths or half-heights.
 This corresponds with circles and capsules using radii instead of diameters.
 
-Box2D also supports rounded polygons. These are convex polygons with a thick rounded skin.
+CorePhys also supports rounded polygons. These are convex polygons with a thick rounded skin.
 
 ```c
 float radius = 0.25f;
@@ -135,7 +135,7 @@ Degenerate points may be coincident and/or collinear. For the hull to be viable,
 ### Segments
 Segments are line segments. Segment
 shapes can collide with circles, capsules, and polygons but not with other line segments.
-The collision algorithms used by Box2D require that at least
+The collision algorithms used by CorePhys require that at least
 one of two colliding shapes has sufficiently positive area. Segment shapes have no area, so
 segment-segment collision is not possible.
 
@@ -160,21 +160,21 @@ an internal collision normal.
 
 If edge1 did not exist this collision would seem fine. With edge1
 present, the internal collision seems like a bug. But normally when
-Box2D collides two shapes, it views them in isolation.
+CorePhys collides two shapes, it views them in isolation.
 
 `b2ChainSegment` provides a mechanism for eliminating ghost
-collisions by storing the adjacent *ghost* vertices. Box2D uses these
+collisions by storing the adjacent *ghost* vertices. CorePhys uses these
 ghost vertices to prevent internal collisions.
 
 ![Ghost Vertices](images/ghost_vertices.svg){html: width=30%}
 
-The Box2D algorithm for dealing with ghost collisions only supports
+The CorePhys algorithm for dealing with ghost collisions only supports
 one-sided collision. The front face is to the right when looking from the first
 vertex towards the second vertex. This matches the counter-clockwise winding order
 used by polygons.
 
 ### Chain segment
-Chain segments use a concept called *ghost vertices* that Box2D can use to eliminate ghost
+Chain segments use a concept called *ghost vertices* that CorePhys can use to eliminate ghost
 collisions.
 
 ```c
@@ -209,7 +209,7 @@ You can cast a ray at a shape to get the point of first intersection and normal 
 
 > **Caution**:
 > No hit will register if the ray starts inside a convex shape like a circle or polygon. This is
-> consistent with Box2D treating convex shapes as solid. 
+> consistent with CorePhys treating convex shapes as solid. 
 
 ```c
 b2RayCastInput input = {0};
@@ -260,7 +260,7 @@ single time step.
 
 The `b2TimeOfImpact()` function is used to determine the time when two moving shapes collide.
 This is called the *time of impact* (TOI). The main purpose of `b2TimeOfImpact()` is for
-tunnel prevention. Box2D uses this internally to prevent moving objects from tunneling through
+tunnel prevention. CorePhys uses this internally to prevent moving objects from tunneling through
 static shapes.
 
 The `b2TimeOfImpact()` identifies an initial separating axis and
@@ -287,10 +287,10 @@ You can use fixed rotations to perform a *shape cast*. In this case, the
 time of impact function will not miss any collisions.
 
 ### Contact Manifolds
-Box2D has functions to compute contact points for overlapping shapes. If
+CorePhys has functions to compute contact points for overlapping shapes. If
 we consider circle-circle or circle-polygon, we can only get one contact
 point and normal. In the case of polygon-polygon we can get two points.
-These points share the same normal vector so Box2D groups them into a
+These points share the same normal vector so CorePhys groups them into a
 manifold structure. The contact solver takes advantage of this to
 improve stacking stability.
 
@@ -304,7 +304,7 @@ points. The contact points store the normal and tangential (friction) impulses
 computed in the rigid body simulation.
 
 ## Dynamic Tree
-`b2DynamicTree` is used by Box2D to organize large numbers of
+`b2DynamicTree` is used by CorePhys to organize large numbers of
 shapes efficiently. The object does not know directly about shapes. Instead it
 operates on axis-aligned bounding boxes (`b2AABB`) with user data integers.
 
@@ -332,4 +332,4 @@ be skipped.
 Normally you will not use the dynamic tree directly. Rather you will go
 through the `b2World` functions for ray casts and region queries. If you plan
 to instantiate your own dynamic tree, you can learn how to use it by
-looking at how Box2D uses it. Also see the `DynamicTree` sample.
+looking at how CorePhys uses it. Also see the `DynamicTree` sample.

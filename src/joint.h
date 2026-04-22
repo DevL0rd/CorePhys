@@ -5,7 +5,7 @@
 #include "array.h"
 #include "solver.h"
 
-#include "box2d/types.h"
+#include "corephys/types.h"
 
 typedef struct b2DebugDraw b2DebugDraw;
 typedef struct b2StepContext b2StepContext;

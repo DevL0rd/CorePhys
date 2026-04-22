@@ -5,7 +5,7 @@
 
 ## Version 2.4 to Version 3.0
 
-Box2D version 3.0 is a full rewrite. You can read some background information [here](https://box2d.org/posts/2023/01/starting-box2d-3.0/).
+CorePhys version 3.0 is a full rewrite. You can read some background information [here](https://github.com/DevL0rd/CorePhys/posts/2023/01/starting-corephys-3.0/).
 
 Here are the highlights that affect the API:
 - moved from C++ to C
@@ -16,13 +16,13 @@ Here are the highlights that affect the API:
 - new sub-stepping solver (*Soft Step*)
 - gear and pulley joint removed (temporarily)
 
-However, the scope of what Box2D does has not changed much. It is still a 2D rigid body engine. It is just faster and more robust (hopefully). And hopefully it is easier to work with and port/wrap for other languages/platforms.
+However, the scope of what CorePhys does has not changed much. It is still a 2D rigid body engine. It is just faster and more robust (hopefully). And hopefully it is easier to work with and port/wrap for other languages/platforms.
 
 I'm going to describe migration by comparing code snippets between 2.4 and 3.0. These should give you and idea of the sort of transformations you need to make to your code to migrate to v3.0. These snippets are written in C and may need some small adjustments to work with C++.
 
 I'm not going to cover all the details of v3.0 in this guide. That is the job of the manual, the doxygen reference, and the samples.
 
-The surface area of the Box2D is smaller in v3.0 because C++ is not good at hiding details. So hopefully you find the new API easier to work with.
+The surface area of the CorePhys is smaller in v3.0 because C++ is not good at hiding details. So hopefully you find the new API easier to work with.
 
 ### Should I upgrade to Version 3?
 Since the behavior changed from version 2 to version 3, I recommend to only use version 3 for new projects. Version 2 no longer receives updates, but it is already battle tested. Version 3 is good for projects that need high performance.
@@ -30,28 +30,28 @@ Since the behavior changed from version 2 to version 3, I recommend to only use 
 ### Creating a world
 Version 2.4:
 ```cpp
-#include "box2d/box2d.h"
+#include "corephys/corephys.h"
 b2Vec2 gravity(0.0f, -10.0f);
 b2World world(gravity);
 ```
 Version 3.0:
 ```c
-#include "box2d/box2d.h"
+#include "corephys/corephys.h"
 b2Vec2 gravity = {0.0f, -10.0f};
 b2WorldDef worldDef = b2DefaultWorldDef();
 worldDef.gravity = gravity;
 b2WorldId worldId = b2CreateWorld(&worldDef);
 ```
-There is now a required world definition. C does not have constructors, so you need to initialize **ALL** structures that you pass to Box2D. Box2D provides an initialization helper for almost all structures. For example `b2DefaultWorldDef()` is used here to initialize `b2WorldDef`. `b2WorldDef` provides many options, but the defaults are good enough to get going.
+There is now a required world definition. C does not have constructors, so you need to initialize **ALL** structures that you pass to CorePhys. CorePhys provides an initialization helper for almost all structures. For example `b2DefaultWorldDef()` is used here to initialize `b2WorldDef`. `b2WorldDef` provides many options, but the defaults are good enough to get going.
 
-In Version 3.0, Box2D objects are generally hidden and you only have an identifier. This keeps the API small. So when you create a world you just get a `b2WorldId` which you should treat as an atomic object, like `int` or `float`. It is small and should be passed by value.
+In Version 3.0, CorePhys objects are generally hidden and you only have an identifier. This keeps the API small. So when you create a world you just get a `b2WorldId` which you should treat as an atomic object, like `int` or `float`. It is small and should be passed by value.
 
 In Version 3.0 there are also no destructors, so you must destroy the world.
 ```c
 b2DestroyWorld(worldId);
 worldId = b2_nullWorldId;
 ```
-This destroys all bodies, shapes, and joints as well. This is quicker than destroying them individually. Just like pointers, it is good practice to nullify identifiers. Box2D provides null values for all identifiers and also macros such as `B2_IS_NULL` to test if an identifier is null.
+This destroys all bodies, shapes, and joints as well. This is quicker than destroying them individually. Just like pointers, it is good practice to nullify identifiers. CorePhys provides null values for all identifiers and also macros such as `B2_IS_NULL` to test if an identifier is null.
 
 ### Creating a body
 Version 2.4:
@@ -234,7 +234,7 @@ In v3.0 there is a strong emphasis on multithreading. Callbacks in multithreadin
   * user code becomes non-deterministic
   * uncertain performance impact
 
-Therefore all callbacks except `PreSolve` have been removed. Instead you can now access all events and contact data after the time step. Version 3.0 no longer uses collision sub-stepping for continuous collision. This means all contacts data are valid at the end of the time step. Just keep in mind that Box2D computes contact points at the beginning of the time step, so the contact points apply to the previous position of the body.
+Therefore all callbacks except `PreSolve` have been removed. Instead you can now access all events and contact data after the time step. Version 3.0 no longer uses collision sub-stepping for continuous collision. This means all contacts data are valid at the end of the time step. Just keep in mind that CorePhys computes contact points at the beginning of the time step, so the contact points apply to the previous position of the body.
 
 Here is how you access contact data in v3.0:
 ```c
@@ -254,7 +254,7 @@ typedef struct b2ContactEvents
 ```
 You can loop through these events after the time step. These events are in deterministic order, even with multithreading. See the `sample_events.cpp` file for examples.
 
-You may not want Box2D to save all contact events, so you can disable them for a given shape using `enableContactEvents` on `b2ShapeDef`.
+You may not want CorePhys to save all contact events, so you can disable them for a given shape using `enableContactEvents` on `b2ShapeDef`.
 
 If you want to access persistent contacts, you can get the data from bodies or shapes.
 ```c

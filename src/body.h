@@ -5,8 +5,8 @@
 
 #include "array.h"
 
-#include "box2d/math_functions.h"
-#include "box2d/types.h"
+#include "corephys/math_functions.h"
+#include "corephys/types.h"
 
 // Length of body debug name
 #define B2_NAME_LENGTH 32

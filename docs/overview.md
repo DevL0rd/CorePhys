@@ -1,15 +1,15 @@
 # Overview
-Box2D is a 2D rigid body simulation library for games. Programmers can
+CorePhys is a 2D rigid body simulation library for games. Programmers can
 use it in their games to make objects move in realistic ways and make
 the game world more interactive. From the game engine's point of view,
 a physics engine is a system for procedural animation.
 
-Box2D also provides many collision routines that can be used even when
+CorePhys also provides many collision routines that can be used even when
 rigid body simulation is not used. There are functions for overlap and
 cast queries. There is also a bounding volume hierarchy (dynamic tree)
 that can be used for game specific spatial sorting needs.
 
-Box2D is written in portable C17. Most of the types defined in the
+CorePhys is written in portable C17. Most of the types defined in the
 engine begin with the b2 prefix. Hopefully this is sufficient to avoid
 name clashing with your application.
 
@@ -18,26 +18,26 @@ In this manual I'll assume you are familiar with basic physics
 concepts, such as mass, force, torque, and impulses. If not, please
 first consult Google search and Wikipedia.
 
-Box2D was created as part of a physics tutorial at the Game Developer
+CorePhys was created as part of a physics tutorial at the Game Developer
 Conference. You can get these tutorials from the publications section of
-[box2d.org](https://box2d.org/publications/).
+[corephys.org](https://github.com/DevL0rd/CorePhys/publications/).
 
-Since Box2D is written in C, you are expected to be experienced in C
-programming. Box2D should not be your first C programming project. You
+Since CorePhys is written in C, you are expected to be experienced in C
+programming. CorePhys should not be your first C programming project. You
 should be comfortable with compiling, linking, and debugging.
 
 > **Caution**:
-> Box2D should not be your first C project. Please learn C
+> CorePhys should not be your first C project. Please learn C
 > programming, compiling, linking, and debugging before working with
-> Box2D. There are many resources for this online.
+> CorePhys. There are many resources for this online.
 
 ## Scope
-This manual covers the majority of the Box2D API. However, not every
+This manual covers the majority of the CorePhys API. However, not every
 aspect is covered. Please look at the Reference section and samples
-application included with Box2D to learn more.
+application included with CorePhys to learn more.
 
 This manual is only updated with new releases. The latest version of
-Box2D may be out of sync with this manual.
+CorePhys may be out of sync with this manual.
 
 > **Caution**:
 > This manual applies to the associated release and not necessarily the
@@ -45,18 +45,18 @@ Box2D may be out of sync with this manual.
 
 ## Feedback and Bugs
 Please file bugs and feature requests here:
-[Box2D Issues](https://github.com/erincatto/box2d/issues)
+[CorePhys Issues](https://github.com/DevL0rd/CorePhys/issues)
 
 You can help to ensure your issue gets fixed if you provide sufficient
 detail. A testbed example that reproduces the problem is ideal. You can
 read about the testbed later in this document.
 
 There is also a [Discord server](https://discord.gg/NKYgCBP) and a
-[subreddit](https://reddit.com/r/box2d) for Box2D. You may also use
-[GitHub Discussions](https://github.com/erincatto/box2d/discussions).
+[subreddit](https://reddit.com/r/corephys) for CorePhys. You may also use
+[GitHub Discussions](https://github.com/DevL0rd/CorePhys/discussions).
 
 ## Core Concepts
-Box2D works with several fundamental concepts and objects. I briefly
+CorePhys works with several fundamental concepts and objects. I briefly
 define these objects here and more details are given later in this
 document.
 
@@ -81,10 +81,10 @@ has removed 2 degrees of freedom.
 ### contact constraint
 A special constraint designed to prevent penetration of rigid bodies and
 to simulate friction and restitution. You do not create contact
-constraints; they are created automatically by Box2D.
+constraints; they are created automatically by CorePhys.
 
 ### joint constraint
-This is a constraint used to hold two or more bodies together. Box2D
+This is a constraint used to hold two or more bodies together. CorePhys
 supports several joint types: revolute, prismatic, distance, and more.
 Joints may have limits, motors, and/or springs.
 
@@ -100,7 +100,7 @@ or torque. The simulation will apply the force or torque required to
 achieve the desired speed.
 
 ### joint spring
-A joint spring has a stiffness and damping. In Box2D spring stiffness is
+A joint spring has a stiffness and damping. In CorePhys spring stiffness is
 expressed in terms or Hertz or cycles per second. This lets you configure how
 quickly a spring reacts regardless of the body masses. Joint springs also
 have a damping ratio to let you specify how quickly the spring will come to
@@ -108,12 +108,12 @@ rest.
 
 ### world
 A physics world is a collection of bodies, shapes, joints, and contacts
-that interact together. Box2D supports the creation of multiple worlds which
+that interact together. CorePhys supports the creation of multiple worlds which
 are completely independent.
 
 ### solver
 The physics world has a solver that is used to advance time and to
-resolve contact and joint constraints. The Box2D solver is a high
+resolve contact and joint constraints. The CorePhys solver is a high
 performance sequential solver that operates in order N time, where N is
 the number of constraints.
 
@@ -122,7 +122,7 @@ The solver advances bodies in time using discrete time steps. Without
 intervention this can lead to tunneling.
 ![Tunneling Effect](images/tunneling1.svg)
 
-Box2D contains specialized algorithms to deal with tunneling. First, the
+CorePhys contains specialized algorithms to deal with tunneling. First, the
 collision algorithms can interpolate the motion of two bodies to find
 the first time of impact (TOI). Second, speculative collision is used to create
 contact constraints between bodies before they touch.
@@ -139,7 +139,7 @@ of the time step:
 These events allow your application to react to changes in the simulation.
 
 ## Modules
-Box2D's primary purpose is to provide rigid body simulation. However,
+CorePhys's primary purpose is to provide rigid body simulation. However,
 there are math and collision features that may be useful apart from the
 rigid body simulation. These are provided in the `include` directory. Anything
 in the `include` directory is considered public, while everything in the `src`
@@ -148,12 +148,12 @@ directory is consider internal.
 Public features are supported and you can get help with these on the Discord
 server. Using internal code directly is not supported. However, feel free to
 study the code and ask questions. I'm happy to share all the details of how
-Box2D works internally.
+CorePhys works internally.
 
 ## Units
-Box2D works with floating point numbers and tolerances have to be used
-to make Box2D perform well. These tolerances have been tuned to work
-well with meters-kilogram-second (MKS) units. In particular, Box2D has
+CorePhys works with floating point numbers and tolerances have to be used
+to make CorePhys perform well. These tolerances have been tuned to work
+well with meters-kilogram-second (MKS) units. In particular, CorePhys has
 been tuned to work well with moving shapes between 0.1 and 10 meters. So
 this means objects between soup cans and buses in size should work well.
 
@@ -163,17 +163,17 @@ improve precision and simulation behavior.
 
 Being a 2D physics engine, it is tempting to use pixels as your units.
 Unfortunately this will lead to a poor simulation and possibly weird
-behavior. An object of length 200 pixels would be seen by Box2D as the
+behavior. An object of length 200 pixels would be seen by CorePhys as the
 size of a 45 story building.
 
 > **Caution**: 
-> Box2D is tuned for MKS units. Keep the size of moving objects larger than 1cm.
+> CorePhys is tuned for MKS units. Keep the size of moving objects larger than 1cm.
 > You'll need to use some scaling system when
-> you render your environment and actors. The Box2D samples application
+> you render your environment and actors. The CorePhys samples application
 > does this by using an OpenGL viewport transform. Do not use pixel units
 > unless you understand the implications.
 
-It is best to think of Box2D bodies as moving billboards upon which you
+It is best to think of CorePhys bodies as moving billboards upon which you
 attach your artwork. The billboard may move in a unit system of meters,
 but you can convert that to pixel coordinates with a simple scaling
 factor. You can then use those pixel coordinates to place your sprites,
@@ -184,19 +184,19 @@ become larger than 12 kilometers or so, then the lost precision can affect
 stability.
 
 > **Caution**: 
-> Box2D works best with world sizes less than 12 kilometers. If you are
+> CorePhys works best with world sizes less than 12 kilometers. If you are
 > careful with your simulation tuning, this can be pushed up to around 24
 > kilometers, which is much larger than most game worlds.
 
-Box2D uses radians for angles. The body rotation is stored a complex number,
+CorePhys uses radians for angles. The body rotation is stored a complex number,
 so when you access the angle of a body, it will be between \f$-\pi\f$ and \f$\pi\f$ radians.
 
 > **Caution**:
-> Box2D uses radians, not degrees.
+> CorePhys uses radians, not degrees.
 
 ## Changing the length units
 Advanced users may change the length unit by calling `b2SetLengthUnitsPerMeter()`
-at application startup. If you keep Box2D in a shared library, you will need
+at application startup. If you keep CorePhys in a shared library, you will need
 to call this if the shared library is reloaded.
 
 If you change the length units to pixels you will need to decide how many pixels
@@ -204,11 +204,11 @@ represent a meter. You will also need to figure out reasonable values for gravit
 density, force, and torque. One of the benefits of using MKS units for physics
 simulation is that you can use real world values to get reasonable results.
 
-It is also harder to get support for using Box2D if you change the unit
+It is also harder to get support for using CorePhys if you change the unit
 system, because values are harder to communicate and may become non-intuitive.
 
 ## Ids and Definitions
-Fast memory management plays a central role in the design of the Box2D
+Fast memory management plays a central role in the design of the CorePhys
 interface. When you create a world, body, shape or joint, you will receive
 a handle called an *id*. These ids are opaque and are passed to various functions
 to access the underlying data.
@@ -218,7 +218,7 @@ usually get an assertion. All ids support 64k generations of safety. All ids
 also have a corresponding function you can call to check if it is valid.
 
 When you create a world, body, shape, or joint, you need to provide a definition structure.
-These definitions contain all the information needed to build the Box2D object. By using
+These definitions contain all the information needed to build the CorePhys object. By using
 this approach I can prevent construction errors, keep the number of function parameters
 small, provide sensible defaults, and reduce the number of accessors.
 
@@ -231,7 +231,7 @@ b2BodyId myBodyId = b2CreateBody(myWorldId, &bodyDef);
 ```
 
 Notice the body definition is initialized by calling `b2DefaultBodyDef()`. This is needed
-because C does not have constructors and zero initialization is generally not suitable for the definitions used in Box2D.
+because C does not have constructors and zero initialization is generally not suitable for the definitions used in CorePhys.
 
 Also notice that the body definition is a temporary object that is fully copied into the internal
 body data structures. Definitions should usually be created on the stack as temporaries.
@@ -244,7 +244,7 @@ myBodyId = b2_nullBodyId;
 ```
 
 Notice that the body id is set to null using the constant `b2_nullBodyId`. You should treat
-ids as opaque data, however you may zero initialize all Box2D ids and they will be considered
+ids as opaque data, however you may zero initialize all CorePhys ids and they will be considered
 *null*.
 
 Shapes are created in a similar way. For example, here is how a box shape is created:
@@ -263,7 +263,7 @@ b2DestroyShape(myShapeId);
 myShapeId = b2_nullShapeId;
 ```
 
-For convenience, Box2D will destroy all shapes on a body when the body is destroyed. You don't need to store the shape id.
+For convenience, CorePhys will destroy all shapes on a body when the body is destroyed. You don't need to store the shape id.
 
 There are some macros to assist using ids in logical operations.
 

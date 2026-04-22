@@ -15,13 +15,13 @@
 #define B2_DEFAULT_MASK_BITS UINT64_MAX
 
 /// Task interface
-/// This is prototype for a Box2D task. Your task system is expected to invoke the Box2D task with these arguments.
+/// This is prototype for a CorePhys task. Your task system is expected to invoke the CorePhys task with these arguments.
 /// The task spans a range of the parallel-for: [startIndex, endIndex)
 /// The worker index must correctly identify each worker in the user thread pool, expected in [0, workerCount).
 /// A worker must only exist on only one thread at a time and is analogous to the thread index.
-/// The task context is the context pointer sent from Box2D when it is enqueued.
+/// The task context is the context pointer sent from CorePhys when it is enqueued.
 /// The startIndex and endIndex are expected in the range [0, itemCount) where itemCount is the argument to b2EnqueueTaskCallback
-/// below. Box2D expects startIndex < endIndex and will execute a loop like this:
+/// below. CorePhys expects startIndex < endIndex and will execute a loop like this:
 ///
 /// @code{.c}
 /// for (int i = startIndex; i < endIndex; ++i)
@@ -32,10 +32,10 @@
 /// @ingroup world
 typedef void b2TaskCallback( int startIndex, int endIndex, uint32_t workerIndex, void* taskContext );
 
-/// These functions can be provided to Box2D to invoke a task system. These are designed to work well with enkiTS.
-/// Returns a pointer to the user's task object. May be nullptr. A nullptr indicates to Box2D that the work was executed
+/// These functions can be provided to CorePhys to invoke a task system. These are designed to work well with enkiTS.
+/// Returns a pointer to the user's task object. May be nullptr. A nullptr indicates to CorePhys that the work was executed
 /// serially within the callback and there is no need to call b2FinishTaskCallback.
-/// The itemCount is the number of Box2D work items that are to be partitioned among workers by the user's task system.
+/// The itemCount is the number of CorePhys work items that are to be partitioned among workers by the user's task system.
 /// This is essentially a parallel-for. The minRange parameter is a suggestion of the minimum number of items to assign
 /// per worker to reduce overhead. For example, suppose the task is small and that itemCount is 16. A minRange of 8 suggests
 /// that your task system should split the work items among just two workers, even if you have more available.
@@ -45,19 +45,19 @@ typedef void b2TaskCallback( int startIndex, int endIndex, uint32_t workerIndex,
 /// @ingroup world
 typedef void* b2EnqueueTaskCallback( b2TaskCallback* task, int itemCount, int minRange, void* taskContext, void* userContext );
 
-/// Finishes a user task object that wraps a Box2D task.
+/// Finishes a user task object that wraps a CorePhys task.
 /// @ingroup world
 typedef void b2FinishTaskCallback( void* userTask, void* userContext );
 
 /// Optional friction mixing callback. This intentionally provides no context objects because this is called
 /// from a worker thread.
-/// @warning This function should not attempt to modify Box2D state or user application state.
+/// @warning This function should not attempt to modify CorePhys state or user application state.
 /// @ingroup world
 typedef float b2FrictionCallback( float frictionA, uint64_t userMaterialIdA, float frictionB, uint64_t userMaterialIdB );
 
 /// Optional restitution mixing callback. This intentionally provides no context objects because this is called
 /// from a worker thread.
-/// @warning This function should not attempt to modify Box2D state or user application state.
+/// @warning This function should not attempt to modify CorePhys state or user application state.
 /// @ingroup world
 typedef float b2RestitutionCallback( float restitutionA, uint64_t userMaterialIdA, float restitutionB, uint64_t userMaterialIdB );
 
@@ -80,7 +80,7 @@ typedef struct b2RayResult
 /// @ingroup world
 typedef struct b2WorldDef
 {
-	/// Gravity vector. Box2D has no up-vector defined.
+	/// Gravity vector. CorePhys has no up-vector defined.
 	b2Vec2 gravity;
 
 	/// Restitution speed threshold, usually in m/s. Collisions above this
@@ -120,10 +120,10 @@ typedef struct b2WorldDef
 	/// Contact softening when mass ratios are large. Experimental.
 	bool enableContactSoftening;
 
-	/// Number of workers to use with the provided task system. Box2D performs best when using only
+	/// Number of workers to use with the provided task system. CorePhys performs best when using only
 	/// performance cores and accessing a single L2 cache. Efficiency cores and hyper-threading provide
 	/// little benefit and may even harm performance.
-	/// @note Box2D does not create threads. This is the number of threads your applications has created
+	/// @note CorePhys does not create threads. This is the number of threads your applications has created
 	/// that you are allocating to b2World_Step.
 	/// @warning Do not modify the default value unless you are also providing a task system and providing
 	/// task callbacks (enqueueTask and finishTask).
@@ -249,7 +249,7 @@ typedef struct b2BodyDef
 	/// I do not recommend using them for game projectiles if precise collision timing is needed. Instead consider
 	/// using a ray or shape cast. You can use a marching ray or shape cast for projectile that moves over time.
 	/// If you want a fast moving projectile to collide with a fast moving target, you need to consider the relative
-	/// movement in your ray or shape cast. This is out of the scope of Box2D.
+	/// movement in your ray or shape cast. This is out of the scope of CorePhys.
 	/// So what are good use cases for bullets? Pinball games or games with dynamic containers that hold other objects.
 	/// It should be a use case where it doesn't break the game if there is a collision missed, but the having them
 	/// captured improves the quality of the game.
@@ -813,7 +813,7 @@ B2_API b2RevoluteJointDef b2DefaultRevoluteJointDef( void );
 /// Weld joint definition
 /// Connects two bodies together rigidly. This constraint provides springs to mimic
 /// soft-body simulation.
-/// @note The approximate solver in Box2D cannot hold many bodies together rigidly
+/// @note The approximate solver in CorePhys cannot hold many bodies together rigidly
 /// @ingroup weld_joint
 typedef struct b2WeldJointDef
 {
@@ -917,7 +917,7 @@ B2_API b2ExplosionDef b2DefaultExplosionDef( void );
  *
  * Events are used to collect events that occur during the world time step. These events
  * are then available to query after the time step is complete. This is preferable to callbacks
- * because Box2D uses multithreaded simulation.
+ * because CorePhys uses multithreaded simulation.
  *
  * Also when events occur in the simulation step it may be problematic to modify the world, which is
  * often what applications want to do when events occur.
@@ -1037,7 +1037,7 @@ typedef struct b2ContactHitEvent
 	float approachSpeed;
 } b2ContactHitEvent;
 
-/// Contact events are buffered in the Box2D world and are available
+/// Contact events are buffered in the CorePhys world and are available
 /// as event arrays after the time step is complete.
 /// Note: these may become invalid if bodies and/or shapes are destroyed
 typedef struct b2ContactEvents
@@ -1079,7 +1079,7 @@ typedef struct b2BodyMoveEvent
 	bool fellAsleep;
 } b2BodyMoveEvent;
 
-/// Body events are buffered in the Box2D world and are available
+/// Body events are buffered in the CorePhys world and are available
 /// as event arrays after the time step is complete.
 /// Note: this data becomes invalid if bodies are destroyed
 typedef struct b2BodyEvents
@@ -1333,10 +1333,10 @@ typedef enum b2HexColor
 	b2_colorYellow = 0xFFFF00,
 	b2_colorYellowGreen = 0x9ACD32,
 
-	b2_colorBox2DRed = 0xDC3132,
-	b2_colorBox2DBlue = 0x30AEBF,
-	b2_colorBox2DGreen = 0x8CC924,
-	b2_colorBox2DYellow = 0xFFEE8C
+	b2_colorCorePhysRed = 0xDC3132,
+	b2_colorCorePhysBlue = 0x30AEBF,
+	b2_colorCorePhysGreen = 0x8CC924,
+	b2_colorCorePhysYellow = 0xFFEE8C
 } b2HexColor;
 
 /// The type of contact point drawing
@@ -1349,7 +1349,7 @@ typedef enum b2ContactDrawType
 	b2_drawContacts_Average = 4,
 } b2ContactDrawType;
 
-/// This struct holds callbacks you can implement to draw a Box2D world.
+/// This struct holds callbacks you can implement to draw a CorePhys world.
 /// This structure should be zero initialized.
 /// @ingroup world
 typedef struct b2DebugDraw

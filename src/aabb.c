@@ -3,7 +3,7 @@
 
 #include "aabb.h"
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 #include <float.h>
 

@@ -37,7 +37,7 @@ set(DOXYGEN_OPTIMIZE_OUTPUT_FOR_C YES)
 set(DOXYGEN_WARN_IF_INCOMPLETE_DOC NO)
 
 doxygen_add_docs(doc
-                "${CMAKE_SOURCE_DIR}/include/box2d"
+                "${CMAKE_SOURCE_DIR}/include/corephys"
                 "overview.md"
                 "hello.md"
                 "samples.md"

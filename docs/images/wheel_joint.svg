@@ -134,14 +134,14 @@
        height="42.426407"
        x="314.03363"
        y="471.8606"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\WheelJoint.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\WheelJoint.png"
        inkscape:export-xdpi="179.94545"
        inkscape:export-ydpi="179.94545" />
     <circle
        style="fill:#d7e3f4;fill-opacity:1;stroke:#767676;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="path2997"
        transform="translate(-8.5714286,-2.8571429)"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\WheelJoint.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\WheelJoint.png"
        inkscape:export-xdpi="179.94545"
        inkscape:export-ydpi="179.94545"
        cx="351.25"
@@ -152,14 +152,14 @@
        d="m 341.78571,492.36218 1.42858,98.92857"
        id="path3767"
        inkscape:connector-curvature="0"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\WheelJoint.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\WheelJoint.png"
        inkscape:export-xdpi="179.94545"
        inkscape:export-ydpi="179.94545" />
     <circle
        transform="translate(134.22402,67.175144)"
        id="path3779"
        style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\WheelJoint.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\WheelJoint.png"
        inkscape:export-xdpi="179.94545"
        inkscape:export-ydpi="179.94545"
        cx="208.57143"
@@ -170,7 +170,7 @@
        d="m 377.85714,506.46933 0.53571,45"
        id="path3781"
        inkscape:connector-curvature="0"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\WheelJoint.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\WheelJoint.png"
        inkscape:export-xdpi="179.94545"
        inkscape:export-ydpi="179.94545" />
     <path
@@ -186,7 +186,7 @@
        sodipodi:end="4.1763713"
        sodipodi:open="true"
        transform="translate(23.392857,2.5)"
-       inkscape:export-filename="D:\Development\Box2D\Box2D\Documentation\images\WheelJoint.png"
+       inkscape:export-filename="D:\Development\CorePhys\CorePhys\Documentation\images\WheelJoint.png"
        inkscape:export-xdpi="179.94545"
        inkscape:export-ydpi="179.94545" />
   </g>

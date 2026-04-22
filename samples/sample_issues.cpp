@@ -2,7 +2,7 @@
 #include "imgui.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
+#include "corephys/corephys.h"
 
 struct PhysicsHitQueryResult2D
 {

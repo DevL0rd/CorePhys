@@ -3,7 +3,7 @@
 
 #include "core.h"
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 #if defined( B2_COMPILER_MSVC )
 #define _CRTDBG_MAP_ALLOC
@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef BOX2D_PROFILE
+#ifdef COREPHYS_PROFILE
 
 #include <tracy/TracyC.h>
 #define b2TracyCAlloc( ptr, size ) TracyCAlloc( ptr, size )
@@ -48,7 +48,7 @@ float b2GetLengthUnitsPerMeter( void )
 
 static int b2DefaultAssertFcn( const char* condition, const char* fileName, int lineNumber )
 {
-	printf( "BOX2D ASSERTION: %s, %s, line %d\n", condition, fileName, lineNumber );
+	printf( "COREPHYS ASSERTION: %s, %s, line %d\n", condition, fileName, lineNumber );
 
 	// return non-zero to break to debugger
 	return 1;
@@ -76,7 +76,7 @@ int b2InternalAssert( const char* condition, const char* fileName, int lineNumbe
 
 static void b2DefaultLogFcn( const char* message )
 {
-	printf( "Box2D: %s\n", message );
+	printf( "CorePhys: %s\n", message );
 }
 
 static b2LogFcn* b2LogHandler = b2DefaultLogFcn;
@@ -127,7 +127,7 @@ void* b2Alloc( int size )
 		return NULL;
 	}
 
-	// This could cause some sharing issues, however Box2D rarely calls b2Alloc.
+	// This could cause some sharing issues, however CorePhys rarely calls b2Alloc.
 	b2AtomicFetchAddInt( &b2_byteCount, size );
 
 	// Allocation must be a multiple of 32 or risk a seg fault

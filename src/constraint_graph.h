@@ -5,9 +5,9 @@
 
 #include "array.h"
 #include "bitset.h"
-#include "box2d/constants.h"
+#include "corephys/constants.h"
 
-#include "box2d/types.h"
+#include "corephys/types.h"
 
 typedef struct b2Body b2Body;
 typedef struct b2ContactSim b2ContactSim;

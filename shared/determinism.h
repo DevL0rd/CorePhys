@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include "box2d/id.h"
+#include "corephys/id.h"
 
 #include <stdbool.h>
 

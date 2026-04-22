@@ -1062,7 +1062,7 @@ static inline b2Vec2W b2RotateVectorW( b2RotW q, b2Vec2W v )
 // Soft contact constraints with sub-stepping support
 // Uses fixed anchors for Jacobians for better behavior on rolling shapes (circles & capsules)
 // http://mmacklin.com/smallsteps.pdf
-// https://box2d.org/files/ErinCatto_SoftConstraints_GDC2011.pdf
+// https://github.com/DevL0rd/CorePhys/files/ErinCatto_SoftConstraints_GDC2011.pdf
 
 typedef struct b2ContactConstraintWide
 {
@@ -1560,8 +1560,8 @@ static void b2ScatterBodies( b2BodyState* B2_RESTRICT states, int* B2_RESTRICT i
 
 #endif
 
-// Note: Dirk suggested preparing contacts in the narrow phase. I tried this but it made Box2D slower.
-// The contact preparation is extremely fast in Box2D due to the data layout (b2ContactSim).
+// Note: Dirk suggested preparing contacts in the narrow phase. I tried this but it made CorePhys slower.
+// The contact preparation is extremely fast in CorePhys due to the data layout (b2ContactSim).
 void b2PrepareContactsTask( int startIndex, int endIndex, b2StepContext* context )
 {
 	b2TracyCZoneNC( prepare_contact, "Prepare Contact", b2_colorYellow, true );

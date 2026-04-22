@@ -14,9 +14,9 @@
 #include "draw.h"
 #include "sample.h"
 
-#include "box2d/base.h"
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/base.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 // clang-format off
 #include "glad/glad.h"
@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef BOX2D_PROFILE
+#ifdef COREPHYS_PROFILE
 #include <tracy/Tracy.hpp>
 #else
 #define FrameMark
@@ -175,7 +175,7 @@ static void CreateUI( GLFWwindow* window, const char* glslVersion )
 	}
 	else
 	{
-		printf( "\n\nERROR: the Box2D samples working directory must be the top level Box2D directory (same as README.md)\n\n" );
+		printf( "\n\nERROR: the CorePhys samples working directory must be the top level CorePhys directory (same as README.md)\n\n" );
 		exit( EXIT_FAILURE );
 	}
 }
@@ -606,7 +606,7 @@ int main( int, char** )
 	glfwWindowHint( GLFW_SAMPLES, 4 );
 
 	b2Version version = b2GetVersion();
-	snprintf( buffer, 128, "Box2D Version %d.%d.%d", version.major, version.minor, version.revision );
+	snprintf( buffer, 128, "CorePhys Version %d.%d.%d", version.major, version.minor, version.revision );
 
 	if ( GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor() )
 	{

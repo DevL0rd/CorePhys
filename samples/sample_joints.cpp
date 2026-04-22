@@ -9,8 +9,8 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/box2d.h"
-#include "box2d/math_functions.h"
+#include "corephys/corephys.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -2246,7 +2246,7 @@ public:
 
 static int sampleJointSeparation = RegisterSample( "Joints", "Separation", JointSeparation::Create );
 
-// This shows how you can implement a constraint outside of Box2D
+// This shows how you can implement a constraint outside of CorePhys
 class UserConstraint : public Sample
 {
 public:

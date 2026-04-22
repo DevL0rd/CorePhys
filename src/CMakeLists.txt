@@ -60,13 +60,13 @@ set(COREPHYS_SOURCE_FILES
 )
 
 set(COREPHYS_API_FILES
-	../include/box2d/base.h
-	../include/box2d/box2d.h
-	../include/box2d/collision.h
-	../include/box2d/constants.h
-	../include/box2d/id.h
-	../include/box2d/math_functions.h
-	../include/box2d/types.h
+	../include/corephys/base.h
+	../include/corephys/corephys.h
+	../include/corephys/collision.h
+	../include/corephys/constants.h
+	../include/corephys/id.h
+	../include/corephys/math_functions.h
+	../include/corephys/types.h
 )
 
 # Hide internal functions
@@ -102,7 +102,7 @@ if (COREPHYS_COMPILE_WARNING_AS_ERROR)
 endif()
 
 if (COREPHYS_PROFILE)
-	target_compile_definitions(corephys PRIVATE BOX2D_PROFILE)
+	target_compile_definitions(corephys PRIVATE COREPHYS_PROFILE)
 
 	FetchContent_Declare(
 		tracy
@@ -118,23 +118,23 @@ endif()
 
 if (COREPHYS_VALIDATE)
 	message(STATUS "CorePhys validation ON")	
-	target_compile_definitions(corephys PRIVATE BOX2D_VALIDATE)
+	target_compile_definitions(corephys PRIVATE COREPHYS_VALIDATE)
 endif()
 
 if (COREPHYS_DISABLE_SIMD)
 	message(STATUS "CorePhys SIMD disabled")	
-	target_compile_definitions(corephys PRIVATE BOX2D_DISABLE_SIMD)
+	target_compile_definitions(corephys PRIVATE COREPHYS_DISABLE_SIMD)
 endif()
 
 if (MSVC)
 	message(STATUS "CorePhys on MSVC")	
 	if (BUILD_SHARED_LIBS)
 		# this is needed by DLL users to import CorePhys symbols
-		target_compile_definitions(corephys INTERFACE BOX2D_DLL)
+		target_compile_definitions(corephys INTERFACE COREPHYS_DLL)
 	endif()
 
 	# Visual Studio won't load the natvis unless it is in the project
-	target_sources(corephys PRIVATE box2d.natvis)
+	target_sources(corephys PRIVATE corephys.natvis)
 
 	# Enable asserts in release with debug info
 	target_compile_definitions(corephys PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:B2_ENABLE_ASSERT>")
@@ -145,7 +145,7 @@ if (MSVC)
 
 	if (COREPHYS_AVX2)
 		message(STATUS "CorePhys using AVX2")	
-		target_compile_definitions(corephys PRIVATE BOX2D_AVX2)
+		target_compile_definitions(corephys PRIVATE COREPHYS_AVX2)
 		target_compile_options(corephys PRIVATE /arch:AVX2)
 	endif()
 
@@ -157,7 +157,7 @@ elseif (MINGW)
 	message(STATUS "CorePhys on MinGW")
 	if (COREPHYS_AVX2)
 		message(STATUS "CorePhys using AVX2")	
-		target_compile_definitions(corephys PRIVATE BOX2D_AVX2)
+		target_compile_definitions(corephys PRIVATE COREPHYS_AVX2)
 		target_compile_options(corephys PRIVATE -mavx2)
 	else()
 	endif()
@@ -179,7 +179,7 @@ elseif (UNIX)
 	else()
 		if (COREPHYS_AVX2)
 			message(STATUS "CorePhys using AVX2")
-			target_compile_definitions(corephys PRIVATE BOX2D_AVX2)
+			target_compile_definitions(corephys PRIVATE COREPHYS_AVX2)
 			target_compile_options(corephys PRIVATE -mavx2)
 		else()
 		endif()
@@ -207,7 +207,7 @@ install(
 
 install(
   FILES ${COREPHYS_API_FILES}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/box2d
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/corephys
 )
 
 include(CMakePackageConfigHelpers)

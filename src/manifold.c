@@ -3,9 +3,9 @@
 
 #include "core.h"
 
-#include "box2d/collision.h"
-#include "box2d/constants.h"
-#include "box2d/math_functions.h"
+#include "corephys/collision.h"
+#include "corephys/constants.h"
+#include "corephys/math_functions.h"
 
 #include <float.h>
 #include <stddef.h>
@@ -1275,7 +1275,7 @@ struct b2ChainSegmentParams
 };
 
 // Evaluate Gauss map
-// See https://box2d.org/posts/2020/06/ghost-collisions/
+// See https://github.com/DevL0rd/CorePhys/posts/2020/06/ghost-collisions/
 static enum b2NormalType b2ClassifyNormal( struct b2ChainSegmentParams params, b2Vec2 normal )
 {
 	const float sinTol = 0.01f;

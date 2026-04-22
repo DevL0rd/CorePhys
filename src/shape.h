@@ -5,7 +5,7 @@
 
 #include "array.h"
 
-#include "box2d/types.h"
+#include "corephys/types.h"
 
 typedef struct b2BroadPhase b2BroadPhase;
 typedef struct b2World b2World;

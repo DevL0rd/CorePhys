@@ -5,7 +5,7 @@
 #include "random.h"
 #include "sample.h"
 
-#include "box2d/math_functions.h"
+#include "corephys/math_functions.h"
 
 #include <GLFW/glfw3.h>
 

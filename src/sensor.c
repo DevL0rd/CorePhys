@@ -11,7 +11,7 @@
 #include "shape.h"
 #include "solver_set.h"
 
-#include "box2d/collision.h"
+#include "corephys/collision.h"
 
 #include <stddef.h>
 #include <stdlib.h>
