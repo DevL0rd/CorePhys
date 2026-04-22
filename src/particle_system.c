@@ -170,23 +170,6 @@ typedef struct b2ParticleVec2DeltaBlock
 	b2ParticleScratchArray* payload;
 } b2ParticleVec2DeltaBlock;
 
-typedef struct b2ParticleColorDeltaData
-{
-	int index;
-	int dr;
-	int dg;
-	int db;
-	int da;
-} b2ParticleColorDeltaData;
-
-typedef struct b2ParticleColorDeltaBlock
-{
-	b2ParticleColorDeltaData* deltas;
-	int count;
-	int capacity;
-	b2ParticleScratchArray* payload;
-} b2ParticleColorDeltaBlock;
-
 typedef struct b2ParticleContactTaskContext
 {
 	b2ParticleSystem* system;
@@ -236,8 +219,7 @@ typedef enum b2ParticleContactSolveTaskType
 	b2_particleContactTaskSolidEjection,
 	b2_particleContactTaskStaticPressure,
 	b2_particleContactTaskPressure,
-	b2_particleContactTaskDamping,
-	b2_particleContactTaskColorMixing
+	b2_particleContactTaskDamping
 } b2ParticleContactSolveTaskType;
 
 typedef struct b2ParticleContactSolveTaskContext
@@ -247,7 +229,6 @@ typedef struct b2ParticleContactSolveTaskContext
 	b2ParticleContactSolveTaskType type;
 	b2ParticleFloatDeltaBlock* floatBlocks;
 	b2ParticleVec2DeltaBlock* vec2Blocks;
-	b2ParticleColorDeltaBlock* colorBlocks;
 	b2ParticleBodyImpulseBlock* bodyImpulseBlocks;
 	int contactBlockCount;
 	int bodyContactBlockCount;
@@ -286,8 +267,7 @@ typedef enum b2ParticleDeltaApplyTaskType
 {
 	b2_particleDeltaTaskFloat,
 	b2_particleDeltaTaskFloatMin,
-	b2_particleDeltaTaskVec2,
-	b2_particleDeltaTaskColor
+	b2_particleDeltaTaskVec2
 } b2ParticleDeltaApplyTaskType;
 
 typedef struct b2ParticleDeltaApplyTaskContext
@@ -298,7 +278,6 @@ typedef struct b2ParticleDeltaApplyTaskContext
 	int partitionCount;
 	float* floatValues;
 	b2Vec2* vec2Values;
-	b2ParticleColor* colors;
 } b2ParticleDeltaApplyTaskContext;
 
 typedef struct b2ParticleBodyContactQueryContext
@@ -950,18 +929,6 @@ static void b2AttachParticleVec2DeltaPayloads( b2ParticleSystem* system, b2Parti
 	}
 }
 
-static void b2AttachParticleColorDeltaPayloads( b2ParticleSystem* system, b2ParticleColorDeltaBlock* blocks, int blockCount )
-{
-	b2ReserveParticlePayloadStorage( &system->colorDeltaBlockPayloads, blockCount, (int)sizeof( b2ParticleColorDeltaData ) );
-	for ( int i = 0; i < blockCount; ++i )
-	{
-		b2ParticleScratchArray* payload = system->colorDeltaBlockPayloads.arrays + i;
-		blocks[i].payload = payload;
-		blocks[i].deltas = b2ParticleScratchArray_Data( payload, b2ParticleColorDeltaData );
-		blocks[i].capacity = payload->capacity;
-	}
-}
-
 static int b2NextPowerOfTwoInt( int value )
 {
 	int result = 1;
@@ -1435,34 +1402,6 @@ static void b2AppendParticleVec2DeltaBlock( b2ParticleVec2DeltaBlock* block, int
 	block->deltas[block->count++] = (b2ParticleVec2DeltaData){ index, delta };
 }
 
-static void b2ReserveParticleColorDeltaBlock( b2ParticleColorDeltaBlock* block, int capacity )
-{
-	if ( block == NULL || capacity <= block->capacity )
-	{
-		return;
-	}
-
-	int oldCapacity = block->capacity;
-	int newCapacity = b2MaxParticleCapacity( oldCapacity, capacity );
-	if ( block->payload != NULL )
-	{
-		b2ParticleScratchArray_Reserve( block->payload, newCapacity );
-		block->deltas = b2ParticleScratchArray_Data( block->payload, b2ParticleColorDeltaData );
-		newCapacity = block->payload->capacity;
-	}
-	else
-	{
-		block->deltas = b2GrowParticleBuffer( block->deltas, oldCapacity, newCapacity, sizeof( b2ParticleColorDeltaData ) );
-	}
-	block->capacity = newCapacity;
-}
-
-static void b2AppendParticleColorDeltaBlock( b2ParticleColorDeltaBlock* block, b2ParticleColorDeltaData delta )
-{
-	b2ReserveParticleColorDeltaBlock( block, block->count + 1 );
-	block->deltas[block->count++] = delta;
-}
-
 static b2ParticleFloatDeltaBlock* b2AllocateParticleFloatDeltaBlocks( b2ParticleSystem* system, int count, bool resetScratch )
 {
 	uint64_t ticks = b2GetTicks();
@@ -1489,21 +1428,6 @@ static b2ParticleVec2DeltaBlock* b2AllocateParticleVec2DeltaBlocks( b2ParticleSy
 	b2ParticleVec2DeltaBlock* blocks = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, b2ParticleVec2DeltaBlock );
 	memset( blocks, 0, count * sizeof( b2ParticleVec2DeltaBlock ) );
 	b2AttachParticleVec2DeltaPayloads( system, blocks, count );
-	system->profile.scratch += b2GetMilliseconds( ticks );
-	return blocks;
-}
-
-static b2ParticleColorDeltaBlock* b2AllocateParticleColorDeltaBlocks( b2ParticleSystem* system, int count, bool resetScratch )
-{
-	uint64_t ticks = b2GetTicks();
-	if ( resetScratch )
-	{
-		b2ParticleScratchBuffer_Reset( &system->scratch );
-	}
-
-	b2ParticleColorDeltaBlock* blocks = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, b2ParticleColorDeltaBlock );
-	memset( blocks, 0, count * sizeof( b2ParticleColorDeltaBlock ) );
-	b2AttachParticleColorDeltaPayloads( system, blocks, count );
 	system->profile.scratch += b2GetMilliseconds( ticks );
 	return blocks;
 }
@@ -1833,19 +1757,6 @@ static b2ParticleVec2DeltaBlock* b2GetParticleVec2DeltaBlock( b2ParticleContactS
 	return context->vec2Blocks + blockIndex * context->deltaPartitionCount + partition;
 }
 
-static b2ParticleColorDeltaBlock* b2GetParticleColorDeltaBlock( b2ParticleContactSolveTaskContext* context, int blockIndex,
-																int particleIndex )
-{
-	if ( context->colorBlocks == NULL )
-	{
-		return NULL;
-	}
-
-	int partition =
-		b2GetParticleDeltaPartition( particleIndex, context->deltaPartitionCount, context->deltaPartitionSize );
-	return context->colorBlocks + blockIndex * context->deltaPartitionCount + partition;
-}
-
 static b2ParticleVec2DeltaBlock* b2GetParticleSpringVec2DeltaBlock( b2ParticleSpringSolveTaskContext* context, int blockIndex,
 																	int particleIndex )
 {
@@ -1869,12 +1780,6 @@ static void b2AppendParticleTaskVec2Delta( b2ParticleContactSolveTaskContext* co
 										  b2Vec2 delta )
 {
 	b2AppendParticleVec2DeltaBlock( b2GetParticleVec2DeltaBlock( context, blockIndex, particleIndex ), particleIndex, delta );
-}
-
-static void b2AppendParticleTaskColorDelta( b2ParticleContactSolveTaskContext* context, int blockIndex,
-										   b2ParticleColorDeltaData delta )
-{
-	b2AppendParticleColorDeltaBlock( b2GetParticleColorDeltaBlock( context, blockIndex, delta.index ), delta );
 }
 
 static void b2AppendParticleSpringVec2Delta( b2ParticleSpringSolveTaskContext* context, int blockIndex, int particleIndex,
@@ -1940,24 +1845,6 @@ static void b2ParticleDeltaApplyTask( int startIndex, int endIndex, uint32_t wor
 				}
 				break;
 
-				case b2_particleDeltaTaskColor:
-				{
-					b2ParticleColorDeltaBlock* block = ( (b2ParticleColorDeltaBlock*)context->blocks ) + deltaBlockIndex;
-					for ( int i = 0; i < block->count; ++i )
-					{
-						b2ParticleColorDeltaData* delta = block->deltas + i;
-						b2ParticleColor* color = context->colors + delta->index;
-						color->r = (uint8_t)b2ClampInt( (int)color->r + delta->dr, 0, 255 );
-						color->g = (uint8_t)b2ClampInt( (int)color->g + delta->dg, 0, 255 );
-						color->b = (uint8_t)b2ClampInt( (int)color->b + delta->db, 0, 255 );
-						color->a = (uint8_t)b2ClampInt( (int)color->a + delta->da, 0, 255 );
-					}
-					if ( block->payload == NULL )
-					{
-						b2Free( block->deltas, block->capacity * (int)sizeof( b2ParticleColorDeltaData ) );
-					}
-				}
-				break;
 			}
 		}
 	}
@@ -2034,28 +1921,6 @@ static void b2ApplyParticleVec2DeltaBlocks( b2World* world, b2ParticleSystem* sy
 		.sourceBlockCount = blockCount,
 		.partitionCount = partitionCount,
 		.vec2Values = values,
-	};
-	b2RunParticleTask( world, system, b2ParticleDeltaApplyTask, partitionCount, 1, &context );
-	system->reductionApplyCount += blockCount * partitionCount;
-	system->profile.reductionApply += b2GetMilliseconds( ticks );
-}
-
-static void b2ApplyParticleColorDeltaBlocks( b2World* world, b2ParticleSystem* system, b2ParticleColorDeltaBlock* blocks,
-											int blockCount, int partitionCount, b2ParticleColor* colors )
-{
-	uint64_t ticks = b2GetTicks();
-	int deltaBlockCount = blockCount * partitionCount;
-	for ( int i = 0; i < deltaBlockCount; ++i )
-	{
-		system->reductionDeltaCount += blocks[i].count;
-	}
-
-	b2ParticleDeltaApplyTaskContext context = {
-		.type = b2_particleDeltaTaskColor,
-		.blocks = blocks,
-		.sourceBlockCount = blockCount,
-		.partitionCount = partitionCount,
-		.colors = colors,
 	};
 	b2RunParticleTask( world, system, b2ParticleDeltaApplyTask, partitionCount, 1, &context );
 	system->reductionApplyCount += blockCount * partitionCount;
@@ -2155,7 +2020,6 @@ static void b2DestroyParticleSystemStorage( b2ParticleSystem* system )
 	b2DestroyParticlePayloadStorage( &system->shapeCandidatePayloads );
 	b2DestroyParticlePayloadStorage( &system->floatDeltaBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->vec2DeltaBlockPayloads );
-	b2DestroyParticlePayloadStorage( &system->colorDeltaBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->barrierGroupDeltaBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->eventContactSortPayloads );
 	b2DestroyParticlePayloadStorage( &system->eventBodyContactSortPayloads );
@@ -5714,20 +5578,6 @@ static void b2ParticleContactSolveTask( int startIndex, int endIndex, uint32_t w
 					}
 					break;
 
-					case b2_particleContactTaskColorMixing:
-						if ( ( system->flags[indexA] & system->flags[indexB] & b2_colorMixingParticle ) != 0 )
-						{
-							int strength = (int)context->scalarA;
-							b2ParticleColor* colorA = system->colors + indexA;
-							b2ParticleColor* colorB = system->colors + indexB;
-							int dr = ( strength * ( (int)colorB->r - (int)colorA->r ) ) >> 8;
-							int dg = ( strength * ( (int)colorB->g - (int)colorA->g ) ) >> 8;
-							int db = ( strength * ( (int)colorB->b - (int)colorA->b ) ) >> 8;
-							int da = ( strength * ( (int)colorB->a - (int)colorA->a ) ) >> 8;
-							b2AppendParticleTaskColorDelta( context, blockIndex, (b2ParticleColorDeltaData){ indexA, dr, dg, db, da } );
-							b2AppendParticleTaskColorDelta( context, blockIndex, (b2ParticleColorDeltaData){ indexB, -dr, -dg, -db, -da } );
-						}
-						break;
 				}
 			}
 		}
@@ -6756,34 +6606,45 @@ static void b2SolveParticleDamping( b2World* world, b2ParticleSystem* system, fl
 	system->profile.damping += b2GetMilliseconds( ticks );
 }
 
-static void b2SolveParticleColorMixing( b2World* world, b2ParticleSystem* system )
+static void b2MixParticleColors( b2ParticleColor* colorA, b2ParticleColor* colorB, int strength )
 {
-	if ( system->def.colorMixingStrength <= 0.0f )
+	int dr = ( strength * ( (int)colorB->r - (int)colorA->r ) ) >> 8;
+	int dg = ( strength * ( (int)colorB->g - (int)colorA->g ) ) >> 8;
+	int db = ( strength * ( (int)colorB->b - (int)colorA->b ) ) >> 8;
+	int da = ( strength * ( (int)colorB->a - (int)colorA->a ) ) >> 8;
+
+	colorA->r = (uint8_t)( (int)colorA->r + dr );
+	colorA->g = (uint8_t)( (int)colorA->g + dg );
+	colorA->b = (uint8_t)( (int)colorA->b + db );
+	colorA->a = (uint8_t)( (int)colorA->a + da );
+	colorB->r = (uint8_t)( (int)colorB->r - dr );
+	colorB->g = (uint8_t)( (int)colorB->g - dg );
+	colorB->b = (uint8_t)( (int)colorB->b - db );
+	colorB->a = (uint8_t)( (int)colorB->a - da );
+}
+
+static void b2SolveParticleColorMixing( b2ParticleSystem* system )
+{
+	if ( system->colors == NULL || ( system->allParticleFlags & b2_colorMixingParticle ) == 0 )
 	{
 		return;
 	}
 
-	int strength = b2ClampInt( (int)( 128.0f * system->def.colorMixingStrength ), 0, 128 );
-	int blockCount = b2GetParticleBlockCount( system->contactCount );
-	if ( blockCount > 0 )
+	int strength = (int)( 128.0f * system->def.colorMixingStrength );
+	if ( strength == 0 )
 	{
-		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
-		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
-		int deltaBlockCount = blockCount * partitionCount;
-		b2ParticleColorDeltaBlock* blocks = b2AllocateParticleColorDeltaBlocks( system, deltaBlockCount, true );
-		b2ParticleContactSolveTaskContext context = {
-			.world = world,
-			.system = system,
-			.type = b2_particleContactTaskColorMixing,
-			.colorBlocks = blocks,
-			.contactBlockCount = blockCount,
-			.blockSize = B2_PARTICLE_TASK_MIN_RANGE,
-			.deltaPartitionCount = partitionCount,
-			.deltaPartitionSize = partitionSize,
-			.scalarA = (float)strength,
-		};
-		b2RunParticleReductionTask( world, system, b2ParticleContactSolveTask, blockCount, 1, &context );
-		b2ApplyParticleColorDeltaBlocks( world, system, blocks, blockCount, partitionCount, system->colors );
+		return;
+	}
+
+	for ( int contactIndex = 0; contactIndex < system->contactCount; ++contactIndex )
+	{
+		b2ParticleContactData* contact = system->contacts + contactIndex;
+		int indexA = contact->indexA;
+		int indexB = contact->indexB;
+		if ( ( system->flags[indexA] & system->flags[indexB] & b2_colorMixingParticle ) != 0 )
+		{
+			b2MixParticleColors( system->colors + indexA, system->colors + indexB, strength );
+		}
 	}
 }
 
@@ -7553,7 +7414,7 @@ static void b2StepParticleSystem( b2World* world, b2ParticleSystem* system, floa
 		b2SolveParticlePowder( world, system, subStep );
 		b2SolveParticleTensile( world, system, subStep );
 		b2SolveParticleSolid( world, system, subStep );
-		b2SolveParticleColorMixing( world, system );
+		b2SolveParticleColorMixing( system );
 		b2SolveParticleGravity( world, system, subStep );
 		b2SolveParticleStaticPressure( world, system, subStep );
 		b2SolveParticlePressure( world, system, subStep );
@@ -7724,7 +7585,6 @@ void b2GetParticleWorldCounters( b2World* world, b2Counters* counters )
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->shapeCandidatePayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->floatDeltaBlockPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->vec2DeltaBlockPayloads );
-		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->colorDeltaBlockPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->barrierGroupDeltaBlockPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->eventContactSortPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->eventBodyContactSortPayloads );

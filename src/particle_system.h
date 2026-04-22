@@ -171,7 +171,6 @@ typedef struct b2ParticleSystem
 	b2ParticlePayloadStorage shapeCandidatePayloads;
 	b2ParticlePayloadStorage floatDeltaBlockPayloads;
 	b2ParticlePayloadStorage vec2DeltaBlockPayloads;
-	b2ParticlePayloadStorage colorDeltaBlockPayloads;
 	b2ParticlePayloadStorage barrierGroupDeltaBlockPayloads;
 	b2ParticlePayloadStorage eventContactSortPayloads;
 	b2ParticlePayloadStorage eventBodyContactSortPayloads;
