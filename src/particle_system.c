@@ -504,6 +504,8 @@ static void b2RecordParticleTaskStats( b2ParticleSystem* system, int itemCount, 
 	system->taskRangeMax = b2MaxInt( system->taskRangeMax, b2MinInt( itemCount, rangeSize ) );
 }
 
+static bool b2ShouldRunParticleTaskInline( const b2World* world, int itemCount, int minRange );
+
 static void b2RunParticleTask( b2World* world, b2ParticleSystem* system, b2TaskCallback* task, int itemCount, int minRange,
 							   void* taskContext )
 {
@@ -514,7 +516,7 @@ static void b2RunParticleTask( b2World* world, b2ParticleSystem* system, b2TaskC
 
 	b2RecordParticleTaskStats( system, itemCount, minRange );
 
-	if ( world == NULL || world->particleSystemTaskActive || world->workerCount <= 1 || itemCount <= 1 || itemCount < minRange )
+	if ( b2ShouldRunParticleTaskInline( world, itemCount, minRange ) )
 	{
 		task( 0, itemCount, 0, taskContext );
 		return;
@@ -2006,6 +2008,12 @@ static void b2ParticleDeltaApplyTask( int startIndex, int endIndex, uint32_t wor
 			}
 		}
 	}
+}
+
+static bool b2ShouldRunParticleTaskInline( const b2World* world, int itemCount, int minRange )
+{
+	return world == NULL || world->particleSystemTaskActive || world->workerCount <= 1 || itemCount <= 1 ||
+		   itemCount <= world->workerCount || itemCount < minRange;
 }
 
 static void b2ApplyParticleFloatDeltaBlocks( b2World* world, b2ParticleSystem* system, b2ParticleFloatDeltaBlock* blocks,
