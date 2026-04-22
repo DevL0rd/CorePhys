@@ -135,11 +135,16 @@ static uint32_t HashParticleSystemState( b2ParticleSystemId systemId )
 	const b2Vec2* positions = b2ParticleSystem_GetPositionBuffer( systemId );
 	const b2Vec2* velocities = b2ParticleSystem_GetVelocityBuffer( systemId );
 	const uint32_t* flags = b2ParticleSystem_GetFlagsBuffer( systemId );
+	const b2ParticleColor* colors = b2ParticleSystem_GetColorBuffer( systemId );
 	for ( int i = 0; i < counters.particleCount; ++i )
 	{
 		hash = HashVec2( hash, positions[i] );
 		hash = HashVec2( hash, velocities[i] );
 		hash = HashWord( hash, flags[i] );
+		hash = HashWord( hash, colors[i].r );
+		hash = HashWord( hash, colors[i].g );
+		hash = HashWord( hash, colors[i].b );
+		hash = HashWord( hash, colors[i].a );
 	}
 
 	return hash;
@@ -543,6 +548,53 @@ static int RunParticleReductionContentionCase( int workerCount, ParticleParallel
 	return 0;
 }
 
+static int RunParticleBatchCreationFirstStepCase( int workerCount, ParticleParallelScenarioResult* result )
+{
+	ParticleParallelTasks parallelTasks = { 0 };
+	b2WorldId worldId = b2_nullWorldId;
+	ENSURE( CreateParticleParallelWorld( workerCount, &parallelTasks, b2Vec2_zero, &worldId ) == 0 );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	systemDef.gravityScale = 0.0f;
+	systemDef.pressureStrength = 0.02f;
+	systemDef.dampingStrength = 0.1f;
+	systemDef.colorMixingStrength = 0.5f;
+	systemDef.destroyByAge = false;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Vec2 positions[] = { { -0.24f, 0.0f }, { -0.16f, 0.0f }, { -0.08f, 0.0f } };
+	b2Circle circle = { { 0.08f, 0.0f }, 0.14f };
+	b2Segment segment = { { 0.28f, -0.08f }, { 0.28f, 0.12f } };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_tensileParticle | b2_colorMixingParticle;
+	groupDef.groupFlags = b2_solidParticleGroup;
+	groupDef.positionData = positions;
+	groupDef.particleCount = ARRAY_COUNT( positions );
+	groupDef.circle = &circle;
+	groupDef.segment = &segment;
+	groupDef.stride = 0.08f;
+	groupDef.linearVelocity = (b2Vec2){ 0.1f, -0.05f };
+	groupDef.angularVelocity = 0.25f;
+	groupDef.color = (b2ParticleColor){ 80, 160, 240, 255 };
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+
+	b2World_Step( worldId, 1.0f / 60.0f, 4 );
+	parallelTasks.taskCount = 0;
+
+	result->hash = HashParticleSystemState( systemId );
+	result->counters = b2ParticleSystem_GetCounters( systemId );
+	ENSURE( result->hash != 0 );
+	ENSURE( result->counters.particleCount > ARRAY_COUNT( positions ) );
+	ENSURE( result->counters.groupCount == 1 );
+	ENSURE( result->counters.contactCount > 0 );
+
+	DestroyParticleParallelWorld( worldId, &parallelTasks );
+	return 0;
+}
+
 static int RunParticleEventDiffCase( int workerCount, ParticleParallelEventResult* result )
 {
 	ParticleParallelTasks parallelTasks = { 0 };
@@ -919,6 +971,18 @@ static int ParticleParallelReductionContention( void )
 	return 0;
 }
 
+static int ParticleParallelBatchCreationFirstStepDeterminism( void )
+{
+	ParticleParallelScenarioResult reference = { 0 };
+	ParticleParallelScenarioResult parallel = { 0 };
+
+	ENSURE( RunParticleBatchCreationFirstStepCase( 1, &reference ) == 0 );
+	ENSURE( RunParticleBatchCreationFirstStepCase( 3, &parallel ) == 0 );
+	ENSURE( ScenarioResultsEqual( &reference, &parallel ) == 0 );
+
+	return 0;
+}
+
 static int ParticleParallelLargeBenchmarkCoverage( void )
 {
 	static const ParticleParallelBenchmarkType benchmarkTypes[] = {
@@ -986,6 +1050,7 @@ int ParticleParallelTest( void )
 	RUN_SUBTEST( ParticleParallelBodyImpulseDeterminism );
 	RUN_SUBTEST( ParticleParallelMultiSystemScheduling );
 	RUN_SUBTEST( ParticleParallelReductionContention );
+	RUN_SUBTEST( ParticleParallelBatchCreationFirstStepDeterminism );
 	RUN_SUBTEST( ParticleParallelLargeBenchmarkCoverage );
 	RUN_SUBTEST( ParticleParallelAdvancedBenchmarkDeterminism );
 

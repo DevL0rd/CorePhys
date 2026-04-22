@@ -4739,6 +4739,11 @@ static void b2UpdateParticleContactEvents( b2ParticleSystem* system )
 		return;
 	}
 
+	if ( system->contactCount == 0 && system->previousContactCount == 0 )
+	{
+		return;
+	}
+
 	uint64_t ticks = b2GetTicks();
 	b2ParticleContactData* currentContacts = NULL;
 	b2ParticleContactData* previousContacts = NULL;
@@ -4762,6 +4767,10 @@ static void b2UpdateParticleContactEvents( b2ParticleSystem* system )
 
 	int currentIndex = 0;
 	int previousIndex = 0;
+	b2ReserveContactData(
+		&system->contactBeginEvents, &system->contactBeginCapacity, system->contactBeginCount + system->contactCount );
+	b2ReserveContactData(
+		&system->contactEndEvents, &system->contactEndCapacity, system->contactEndCount + system->previousContactCount );
 	while ( currentIndex < system->contactCount || previousIndex < system->previousContactCount )
 	{
 		if ( previousIndex >= system->previousContactCount )
@@ -4805,6 +4814,11 @@ static void b2UpdateParticleBodyContactEvents( b2ParticleSystem* system )
 		return;
 	}
 
+	if ( system->bodyContactCount == 0 && system->previousBodyContactCount == 0 )
+	{
+		return;
+	}
+
 	uint64_t ticks = b2GetTicks();
 	b2ParticleBodyContactData* currentContacts = NULL;
 	b2ParticleBodyContactData* previousContacts = NULL;
@@ -4831,6 +4845,12 @@ static void b2UpdateParticleBodyContactEvents( b2ParticleSystem* system )
 
 	int currentIndex = 0;
 	int previousIndex = 0;
+	b2ReserveBodyContactData(
+		&system->bodyContactBeginEvents, &system->bodyContactBeginCapacity,
+		system->bodyContactBeginCount + system->bodyContactCount );
+	b2ReserveBodyContactData(
+		&system->bodyContactEndEvents, &system->bodyContactEndCapacity,
+		system->bodyContactEndCount + system->previousBodyContactCount );
 	while ( currentIndex < system->bodyContactCount || previousIndex < system->previousBodyContactCount )
 	{
 		if ( previousIndex >= system->previousBodyContactCount )
@@ -5783,6 +5803,15 @@ static void b2UpdateParticleContacts( b2ParticleSystem* system )
 
 	b2World* world = b2TryGetWorld( system->worldId );
 	int count = system->particleCount;
+	if ( count < 2 )
+	{
+		system->proxyCount = 0;
+		system->contactCount = 0;
+		b2UpdateParticleContactEvents( system );
+		system->profile.contacts += b2GetMilliseconds( totalTicks );
+		return;
+	}
+
 	b2ReserveProxies( system, count );
 	system->proxyCount = count;
 
@@ -6045,6 +6074,30 @@ static void b2LimitParticleBodyVelocity( b2BodyState* state, float maxLinearSpee
 
 static void b2ApplyParticleBodyImpulseBlocks( b2World* world, b2ParticleBodyImpulseBlock* blocks, int blockCount )
 {
+	if ( blocks == NULL || blockCount == 0 )
+	{
+		return;
+	}
+
+	int impulseCount = 0;
+	for ( int blockIndex = 0; blockIndex < blockCount; ++blockIndex )
+	{
+		impulseCount += blocks[blockIndex].count;
+	}
+
+	if ( impulseCount == 0 )
+	{
+		for ( int blockIndex = 0; blockIndex < blockCount; ++blockIndex )
+		{
+			b2ParticleBodyImpulseBlock* block = blocks + blockIndex;
+			if ( block->payload == NULL )
+			{
+				b2Free( block->impulses, block->capacity * (int)sizeof( b2ParticleBodyImpulseData ) );
+			}
+		}
+		return;
+	}
+
 	int bodyCount = world->bodies.count;
 	if ( bodyCount == 0 )
 	{
@@ -6695,7 +6748,7 @@ static void b2MixParticleColors( b2ParticleColor* colorA, b2ParticleColor* color
 
 static void b2SolveParticleColorMixing( b2ParticleSystem* system )
 {
-	if ( system->colors == NULL || ( system->allParticleFlags & b2_colorMixingParticle ) == 0 )
+	if ( system->colors == NULL || system->contactCount == 0 || ( system->allParticleFlags & b2_colorMixingParticle ) == 0 )
 	{
 		return;
 	}

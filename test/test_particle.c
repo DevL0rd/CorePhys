@@ -524,6 +524,417 @@ static int ParticleGroupCreationFromShapes( void )
 	return 0;
 }
 
+static int ParticleGroupBatchCreationPreservesParticleState( void )
+{
+	static int userData = 31;
+
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	systemDef.lifetimeGranularity = 0.25f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Vec2 positions[] = { { -0.35f, 0.0f }, { -0.25f, 0.0f } };
+	b2Circle circle = { { 0.0f, 0.0f }, 0.16f };
+	b2Segment segment = { { 0.25f, -0.1f }, { 0.25f, 0.15f } };
+
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_tensileParticle | b2_colorMixingParticle | b2_destructionListenerParticle;
+	groupDef.groupFlags = b2_solidParticleGroup;
+	groupDef.positionData = positions;
+	groupDef.particleCount = ARRAY_COUNT( positions );
+	groupDef.circle = &circle;
+	groupDef.segment = &segment;
+	groupDef.stride = 0.08f;
+	groupDef.linearVelocity = (b2Vec2){ 1.25f, -0.5f };
+	groupDef.angularVelocity = 0.75f;
+	groupDef.color = (b2ParticleColor){ 30, 80, 220, 255 };
+	groupDef.lifetime = 0.6f;
+	groupDef.userData = &userData;
+
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+	int groupCount = b2ParticleGroup_GetParticleCount( groupId );
+	ENSURE( groupCount > ARRAY_COUNT( positions ) );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == groupCount );
+
+	int startIndex = -1;
+	int rangeCount = -1;
+	b2ParticleGroup_GetParticleRange( groupId, &startIndex, &rangeCount );
+	ENSURE( startIndex == 0 );
+	ENSURE( rangeCount == groupCount );
+
+	const b2Vec2* particlePositions = b2ParticleSystem_GetPositionBuffer( systemId );
+	const b2Vec2* velocities = b2ParticleSystem_GetVelocityBuffer( systemId );
+	const uint32_t* flags = b2ParticleSystem_GetFlagsBuffer( systemId );
+	const b2ParticleColor* colors = b2ParticleSystem_GetColorBuffer( systemId );
+	const float* lifetimes = b2ParticleSystem_GetLifetimeBuffer( systemId );
+	void* const* userDataBuffer = b2ParticleSystem_GetUserDataBuffer( systemId );
+	ENSURE( particlePositions != NULL );
+	ENSURE( velocities != NULL );
+	ENSURE( flags != NULL );
+	ENSURE( colors != NULL );
+	ENSURE( lifetimes != NULL );
+	ENSURE( userDataBuffer != NULL );
+
+	uint32_t expectedFlags = groupDef.flags;
+	for ( int i = startIndex; i < startIndex + rangeCount; ++i )
+	{
+		ENSURE( flags[i] == expectedFlags );
+		ENSURE( colors[i].r == groupDef.color.r );
+		ENSURE( colors[i].g == groupDef.color.g );
+		ENSURE( colors[i].b == groupDef.color.b );
+		ENSURE( colors[i].a == groupDef.color.a );
+		ENSURE_SMALL( lifetimes[i] - 0.75f, FLT_EPSILON );
+		ENSURE( userDataBuffer[i] == &userData );
+
+		b2Vec2 r = b2Sub( particlePositions[i], groupDef.position );
+		b2Vec2 expectedVelocity = {
+			groupDef.linearVelocity.x - groupDef.angularVelocity * r.y,
+			groupDef.linearVelocity.y + groupDef.angularVelocity * r.x,
+		};
+		ENSURE_SMALL( velocities[i].x - expectedVelocity.x, FLT_EPSILON );
+		ENSURE_SMALL( velocities[i].y - expectedVelocity.y, FLT_EPSILON );
+	}
+
+	b2ParticleSystem_DestroyParticle( systemId, 0 );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == groupCount - 1 );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) == groupCount - 1 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleGroupBatchAppendKeepsSingleGroupRange( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Vec2 positionsA[] = { { 0.0f, 0.0f }, { 0.06f, 0.0f } };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_viscousParticle;
+	groupDef.positionData = positionsA;
+	groupDef.particleCount = ARRAY_COUNT( positionsA );
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) == ARRAY_COUNT( positionsA ) );
+
+	b2Circle circle = { { 0.35f, 0.0f }, 0.13f };
+	groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_tensileParticle;
+	groupDef.groupId = groupId;
+	groupDef.circle = &circle;
+	groupDef.stride = 0.08f;
+	b2ParticleGroupId sameGroupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( B2_ID_EQUALS( sameGroupId, groupId ) );
+	ENSURE( b2World_GetCounters( worldId ).particleGroupCount == 1 );
+
+	int totalCount = b2ParticleSystem_GetParticleCount( systemId );
+	ENSURE( totalCount > ARRAY_COUNT( positionsA ) );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) == totalCount );
+
+	int startIndex = -1;
+	int rangeCount = -1;
+	b2ParticleGroup_GetParticleRange( groupId, &startIndex, &rangeCount );
+	ENSURE( startIndex == 0 );
+	ENSURE( rangeCount == totalCount );
+
+	const uint32_t* flags = b2ParticleSystem_GetFlagsBuffer( systemId );
+	ENSURE( flags != NULL );
+	int viscousCount = 0;
+	int tensileCount = 0;
+	for ( int i = 0; i < totalCount; ++i )
+	{
+		viscousCount += ( flags[i] & b2_viscousParticle ) != 0 ? 1 : 0;
+		tensileCount += ( flags[i] & b2_tensileParticle ) != 0 ? 1 : 0;
+	}
+	ENSURE( viscousCount == ARRAY_COUNT( positionsA ) );
+	ENSURE( tensileCount == totalCount - ARRAY_COUNT( positionsA ) );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleSingleCreateIntoExistingGroupReorders( void )
+{
+	static int userData = 41;
+
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Vec2 positions[] = { { 0.0f, 0.0f }, { 0.08f, 0.0f } };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_tensileParticle;
+	groupDef.positionData = positions;
+	groupDef.particleCount = ARRAY_COUNT( positions );
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+
+	b2ParticleDef particleDef = b2DefaultParticleDef();
+	particleDef.flags = b2_viscousParticle;
+	particleDef.position = (b2Vec2){ -0.1f, 0.0f };
+	particleDef.velocity = (b2Vec2){ 2.0f, -3.0f };
+	particleDef.color = (b2ParticleColor){ 7, 11, 13, 17 };
+	particleDef.userData = &userData;
+	particleDef.groupId = groupId;
+	int particleIndex = b2ParticleSystem_CreateParticle( systemId, &particleDef );
+	ENSURE( particleIndex >= 0 );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) == 3 );
+
+	int startIndex = -1;
+	int rangeCount = -1;
+	b2ParticleGroup_GetParticleRange( groupId, &startIndex, &rangeCount );
+	ENSURE( startIndex == 0 );
+	ENSURE( rangeCount == 3 );
+
+	const uint32_t* flags = b2ParticleSystem_GetFlagsBuffer( systemId );
+	const b2Vec2* velocities = b2ParticleSystem_GetVelocityBuffer( systemId );
+	const b2ParticleColor* colors = b2ParticleSystem_GetColorBuffer( systemId );
+	void* const* userDataBuffer = b2ParticleSystem_GetUserDataBuffer( systemId );
+	ENSURE( flags != NULL );
+	ENSURE( velocities != NULL );
+	ENSURE( colors != NULL );
+	ENSURE( userDataBuffer != NULL );
+	ENSURE( flags[particleIndex] == b2_viscousParticle );
+	ENSURE_SMALL( velocities[particleIndex].x - 2.0f, FLT_EPSILON );
+	ENSURE_SMALL( velocities[particleIndex].y + 3.0f, FLT_EPSILON );
+	ENSURE( colors[particleIndex].r == 7 );
+	ENSURE( colors[particleIndex].g == 11 );
+	ENSURE( colors[particleIndex].b == 13 );
+	ENSURE( colors[particleIndex].a == 17 );
+	ENSURE( userDataBuffer[particleIndex] == &userData );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleGroupDestroyMiddleCompactsAndRemapsBuffers( void )
+{
+	static int userData[] = { 51, 52, 53, 54, 55 };
+
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Vec2 positions[] = { { 0.0f, 0.0f }, { 0.06f, 0.0f }, { 0.12f, 0.0f }, { 0.18f, 0.0f }, { 0.24f, 0.0f } };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.positionData = positions;
+	groupDef.particleCount = ARRAY_COUNT( positions );
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+
+	void** userDataBuffer = b2ParticleSystem_GetMutableUserDataBuffer( systemId );
+	b2ParticleColor* colors = b2ParticleSystem_GetMutableColorBuffer( systemId );
+	uint32_t* flags = b2ParticleSystem_GetMutableFlagsBuffer( systemId );
+	ENSURE( userDataBuffer != NULL );
+	ENSURE( colors != NULL );
+	ENSURE( flags != NULL );
+
+	for ( int i = 0; i < ARRAY_COUNT( positions ); ++i )
+	{
+		userDataBuffer[i] = userData + i;
+		colors[i] = (b2ParticleColor){ (uint8_t)( 10 + i ), (uint8_t)( 20 + i ), (uint8_t)( 30 + i ), 255 };
+		flags[i] = i == 2 ? b2_viscousParticle : b2_tensileParticle;
+	}
+
+	b2ParticleSystem_DestroyParticle( systemId, 2 );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == 4 );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) == 4 );
+
+	int startIndex = -1;
+	int rangeCount = -1;
+	b2ParticleGroup_GetParticleRange( groupId, &startIndex, &rangeCount );
+	ENSURE( startIndex == 0 );
+	ENSURE( rangeCount == 4 );
+
+	userDataBuffer = b2ParticleSystem_GetMutableUserDataBuffer( systemId );
+	colors = b2ParticleSystem_GetMutableColorBuffer( systemId );
+	flags = b2ParticleSystem_GetMutableFlagsBuffer( systemId );
+	ENSURE( userDataBuffer[0] == userData + 0 );
+	ENSURE( userDataBuffer[1] == userData + 1 );
+	ENSURE( userDataBuffer[2] == userData + 3 );
+	ENSURE( userDataBuffer[3] == userData + 4 );
+	ENSURE( colors[2].r == 13 );
+	ENSURE( colors[3].r == 14 );
+	ENSURE( flags[0] == b2_tensileParticle );
+	ENSURE( flags[1] == b2_tensileParticle );
+	ENSURE( flags[2] == b2_tensileParticle );
+	ENSURE( flags[3] == b2_tensileParticle );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleGroupMaxCountDestroyByAgeIsDeterministic( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	systemDef.maxCount = 2;
+	systemDef.destroyByAge = true;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Vec2 positions[] = { { 0.0f, 0.0f }, { 0.1f, 0.0f }, { 0.2f, 0.0f } };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.positionData = positions;
+	groupDef.particleCount = ARRAY_COUNT( positions );
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == 2 );
+	ENSURE( b2ParticleGroup_GetParticleCount( groupId ) == 2 );
+
+	const b2Vec2* particlePositions = b2ParticleSystem_GetPositionBuffer( systemId );
+	ENSURE( particlePositions != NULL );
+	ENSURE_SMALL( particlePositions[0].x - 0.1f, FLT_EPSILON );
+	ENSURE_SMALL( particlePositions[1].x - 0.2f, FLT_EPSILON );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleShapeGroupPairsTriadsAfterBatchCreation( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Circle circle = { { 0.0f, 0.0f }, 0.16f };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_springParticle | b2_elasticParticle | b2_barrierParticle;
+	groupDef.circle = &circle;
+	groupDef.stride = 0.08f;
+	groupDef.strength = 0.8f;
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) >= 4 );
+	ENSURE( b2ParticleSystem_GetPairCount( systemId ) > 0 );
+	ENSURE( b2ParticleSystem_GetPairs( systemId ) != NULL );
+	ENSURE( b2ParticleSystem_GetTriadCount( systemId ) > 0 );
+	ENSURE( b2ParticleSystem_GetTriads( systemId ) != NULL );
+
+	b2World_Step( worldId, 1.0f / 60.0f, 1 );
+	ENSURE( b2ParticleSystem_GetPairCount( systemId ) > 0 );
+	ENSURE( b2ParticleSystem_GetTriadCount( systemId ) > 0 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleColorMixingMatchesLiquidFunPairStep( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.1f;
+	systemDef.gravityScale = 0.0f;
+	systemDef.pressureStrength = 0.0f;
+	systemDef.dampingStrength = 0.0f;
+	systemDef.colorMixingStrength = 0.5f;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2ParticleDef particleDef = b2DefaultParticleDef();
+	particleDef.flags = b2_colorMixingParticle;
+	particleDef.position = (b2Vec2){ 0.0f, 0.0f };
+	particleDef.color = (b2ParticleColor){ 255, 0, 0, 255 };
+	ENSURE( b2ParticleSystem_CreateParticle( systemId, &particleDef ) == 0 );
+	particleDef.position = (b2Vec2){ 0.1f, 0.0f };
+	particleDef.color = (b2ParticleColor){ 0, 0, 255, 255 };
+	ENSURE( b2ParticleSystem_CreateParticle( systemId, &particleDef ) == 1 );
+
+	b2World_Step( worldId, 1.0f / 60.0f, 1 );
+	ENSURE( b2ParticleSystem_GetContactCount( systemId ) == 1 );
+
+	const b2ParticleColor* colors = b2ParticleSystem_GetColorBuffer( systemId );
+	ENSURE( colors != NULL );
+	ENSURE( colors[0].r == 191 );
+	ENSURE( colors[0].g == 0 );
+	ENSURE( colors[0].b == 63 );
+	ENSURE( colors[0].a == 255 );
+	ENSURE( colors[1].r == 64 );
+	ENSURE( colors[1].g == 0 );
+	ENSURE( colors[1].b == 192 );
+	ENSURE( colors[1].a == 255 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
+static int ParticleBatchGroupBodyContactsEmitEvents( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2BodyDef bodyDef = b2DefaultBodyDef();
+	b2BodyId bodyId = b2CreateBody( worldId, &bodyDef );
+	ENSURE( b2Body_IsValid( bodyId ) );
+
+	b2Polygon box = b2MakeBox( 1.0f, 1.0f );
+	b2ShapeDef shapeDef = b2DefaultShapeDef();
+	b2ShapeId shapeId = b2CreatePolygonShape( bodyId, &shapeDef, &box );
+	ENSURE( b2Shape_IsValid( shapeId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	systemDef.gravityScale = 0.0f;
+	systemDef.enableParticleBodyEvents = true;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Circle circle = { { 0.0f, 0.0f }, 0.18f };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.flags = b2_bodyContactListenerParticle;
+	groupDef.circle = &circle;
+	groupDef.stride = 0.08f;
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( b2ParticleGroup_IsValid( groupId ) );
+
+	b2World_Step( worldId, 1.0f / 60.0f, 1 );
+	b2ParticleBodyContactEvents events = b2ParticleSystem_GetBodyContactEvents( systemId );
+	ENSURE( b2ParticleSystem_GetBodyContactCount( systemId ) == b2ParticleSystem_GetParticleCount( systemId ) );
+	ENSURE( events.beginCount == b2ParticleSystem_GetParticleCount( systemId ) );
+	ENSURE( events.endCount == 0 );
+	ENSURE( B2_ID_EQUALS( events.beginEvents[0].shapeId, shapeId ) );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
 static int ParticleGroupJoinAndSplitRanges( void )
 {
 	b2WorldId worldId = CreateParticleTestWorld();
@@ -927,6 +1338,32 @@ static int ParticleGroupCreationRollsBackOnAdmissionFailure( void )
 	return 0;
 }
 
+static int ParticleGroupShapeCreationRollsBackOnAdmissionFailure( void )
+{
+	b2WorldId worldId = CreateParticleTestWorld();
+	ENSURE( b2World_IsValid( worldId ) );
+
+	b2ParticleSystemDef systemDef = b2DefaultParticleSystemDef();
+	systemDef.radius = 0.05f;
+	systemDef.maxCount = 2;
+	systemDef.destroyByAge = false;
+	b2ParticleSystemId systemId = b2CreateParticleSystem( worldId, &systemDef );
+	ENSURE( b2ParticleSystem_IsValid( systemId ) );
+
+	b2Circle circle = { { 0.0f, 0.0f }, 0.2f };
+	b2ParticleGroupDef groupDef = b2DefaultParticleGroupDef();
+	groupDef.circle = &circle;
+	groupDef.stride = 0.07f;
+	b2ParticleGroupId groupId = b2ParticleSystem_CreateParticleGroup( systemId, &groupDef );
+	ENSURE( B2_IS_NULL( groupId ) );
+	ENSURE( b2ParticleSystem_GetParticleCount( systemId ) == 0 );
+	ENSURE( b2World_GetCounters( worldId ).particleGroupCount == 0 );
+
+	b2DestroyWorld( worldId );
+	ENSURE( b2World_IsValid( worldId ) == false );
+	return 0;
+}
+
 int ParticleTest( void )
 {
 	RUN_SUBTEST( ParticleFlagValues );
@@ -939,6 +1376,14 @@ int ParticleTest( void )
 	RUN_SUBTEST( ParticleContactEvents );
 	RUN_SUBTEST( ParticleBodyContactEvents );
 	RUN_SUBTEST( ParticleGroupCreationFromShapes );
+	RUN_SUBTEST( ParticleGroupBatchCreationPreservesParticleState );
+	RUN_SUBTEST( ParticleGroupBatchAppendKeepsSingleGroupRange );
+	RUN_SUBTEST( ParticleSingleCreateIntoExistingGroupReorders );
+	RUN_SUBTEST( ParticleGroupDestroyMiddleCompactsAndRemapsBuffers );
+	RUN_SUBTEST( ParticleGroupMaxCountDestroyByAgeIsDeterministic );
+	RUN_SUBTEST( ParticleShapeGroupPairsTriadsAfterBatchCreation );
+	RUN_SUBTEST( ParticleColorMixingMatchesLiquidFunPairStep );
+	RUN_SUBTEST( ParticleBatchGroupBodyContactsEmitEvents );
 	RUN_SUBTEST( ParticleGroupJoinAndSplitRanges );
 	RUN_SUBTEST( ParticleCounters );
 	RUN_SUBTEST( ParticlePairsTriadsAndGroupAccessors );
@@ -947,6 +1392,7 @@ int ParticleTest( void )
 	RUN_SUBTEST( ParticleListenerFlagsEmitEvents );
 	RUN_SUBTEST( ParticleLifetimeGranularityAndOldestAdmission );
 	RUN_SUBTEST( ParticleGroupCreationRollsBackOnAdmissionFailure );
+	RUN_SUBTEST( ParticleGroupShapeCreationRollsBackOnAdmissionFailure );
 
 	return 0;
 }
