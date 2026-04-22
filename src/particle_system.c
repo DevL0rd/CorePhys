@@ -1154,7 +1154,6 @@ static void b2BuildParticleCellGrid( b2ParticleSystem* system, b2ParticleCellGri
 	int* proxyCellIndices = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, int );
 	grid->cellCapacity = count;
 	grid->cells = b2ParticleScratchBuffer_AllocArray( &system->scratch, count, b2ParticleCell );
-	memset( grid->cells, 0, count * sizeof( b2ParticleCell ) );
 	grid->tableCapacity = b2NextPowerOfTwoInt( b2MaxInt( 16, 2 * count ) );
 	grid->table = b2ParticleScratchBuffer_AllocArray( &system->scratch, grid->tableCapacity, int );
 	for ( int i = 0; i < grid->tableCapacity; ++i )
@@ -4775,14 +4774,12 @@ static void b2UpdateParticleContactEvents( b2ParticleSystem* system )
 	{
 		if ( previousIndex >= system->previousContactCount )
 		{
-			b2ReserveContactData( &system->contactBeginEvents, &system->contactBeginCapacity, system->contactBeginCount + 1 );
 			system->contactBeginEvents[system->contactBeginCount++] = currentContacts[currentIndex++];
 			continue;
 		}
 
 		if ( currentIndex >= system->contactCount )
 		{
-			b2ReserveContactData( &system->contactEndEvents, &system->contactEndCapacity, system->contactEndCount + 1 );
 			system->contactEndEvents[system->contactEndCount++] = previousContacts[previousIndex++];
 			continue;
 		}
@@ -4790,12 +4787,10 @@ static void b2UpdateParticleContactEvents( b2ParticleSystem* system )
 		int compare = b2CompareParticleContactKeys( currentContacts + currentIndex, previousContacts + previousIndex );
 		if ( compare < 0 )
 		{
-			b2ReserveContactData( &system->contactBeginEvents, &system->contactBeginCapacity, system->contactBeginCount + 1 );
 			system->contactBeginEvents[system->contactBeginCount++] = currentContacts[currentIndex++];
 		}
 		else if ( compare > 0 )
 		{
-			b2ReserveContactData( &system->contactEndEvents, &system->contactEndCapacity, system->contactEndCount + 1 );
 			system->contactEndEvents[system->contactEndCount++] = previousContacts[previousIndex++];
 		}
 		else
@@ -4855,16 +4850,12 @@ static void b2UpdateParticleBodyContactEvents( b2ParticleSystem* system )
 	{
 		if ( previousIndex >= system->previousBodyContactCount )
 		{
-			b2ReserveBodyContactData(
-				&system->bodyContactBeginEvents, &system->bodyContactBeginCapacity, system->bodyContactBeginCount + 1 );
 			system->bodyContactBeginEvents[system->bodyContactBeginCount++] = currentContacts[currentIndex++];
 			continue;
 		}
 
 		if ( currentIndex >= system->bodyContactCount )
 		{
-			b2ReserveBodyContactData(
-				&system->bodyContactEndEvents, &system->bodyContactEndCapacity, system->bodyContactEndCount + 1 );
 			system->bodyContactEndEvents[system->bodyContactEndCount++] = previousContacts[previousIndex++];
 			continue;
 		}
@@ -4873,14 +4864,10 @@ static void b2UpdateParticleBodyContactEvents( b2ParticleSystem* system )
 			b2CompareParticleBodyContactKeys( currentContacts + currentIndex, previousContacts + previousIndex );
 		if ( compare < 0 )
 		{
-			b2ReserveBodyContactData(
-				&system->bodyContactBeginEvents, &system->bodyContactBeginCapacity, system->bodyContactBeginCount + 1 );
 			system->bodyContactBeginEvents[system->bodyContactBeginCount++] = currentContacts[currentIndex++];
 		}
 		else if ( compare > 0 )
 		{
-			b2ReserveBodyContactData(
-				&system->bodyContactEndEvents, &system->bodyContactEndCapacity, system->bodyContactEndCount + 1 );
 			system->bodyContactEndEvents[system->bodyContactEndCount++] = previousContacts[previousIndex++];
 		}
 		else
