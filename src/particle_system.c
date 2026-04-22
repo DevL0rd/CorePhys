@@ -1855,9 +1855,16 @@ static void b2ApplyParticleFloatDeltaBlocks( b2World* world, b2ParticleSystem* s
 {
 	uint64_t ticks = b2GetTicks();
 	int deltaBlockCount = blockCount * partitionCount;
+	int deltaCount = 0;
 	for ( int i = 0; i < deltaBlockCount; ++i )
 	{
-		system->reductionDeltaCount += blocks[i].count;
+		deltaCount += blocks[i].count;
+	}
+	system->reductionDeltaCount += deltaCount;
+	if ( deltaCount == 0 )
+	{
+		system->profile.reductionApply += b2GetMilliseconds( ticks );
+		return;
 	}
 
 	b2ParticleDeltaApplyTaskContext context = {
@@ -1888,9 +1895,16 @@ static void b2ApplyParticleFloatMinDeltaBlocks( b2World* world, b2ParticleSystem
 {
 	uint64_t ticks = b2GetTicks();
 	int deltaBlockCount = blockCount * partitionCount;
+	int deltaCount = 0;
 	for ( int i = 0; i < deltaBlockCount; ++i )
 	{
-		system->reductionDeltaCount += blocks[i].count;
+		deltaCount += blocks[i].count;
+	}
+	system->reductionDeltaCount += deltaCount;
+	if ( deltaCount == 0 )
+	{
+		system->profile.reductionApply += b2GetMilliseconds( ticks );
+		return;
 	}
 
 	b2ParticleDeltaApplyTaskContext context = {
@@ -1910,9 +1924,16 @@ static void b2ApplyParticleVec2DeltaBlocks( b2World* world, b2ParticleSystem* sy
 {
 	uint64_t ticks = b2GetTicks();
 	int deltaBlockCount = blockCount * partitionCount;
+	int deltaCount = 0;
 	for ( int i = 0; i < deltaBlockCount; ++i )
 	{
-		system->reductionDeltaCount += blocks[i].count;
+		deltaCount += blocks[i].count;
+	}
+	system->reductionDeltaCount += deltaCount;
+	if ( deltaCount == 0 )
+	{
+		system->profile.reductionApply += b2GetMilliseconds( ticks );
+		return;
 	}
 
 	b2ParticleDeltaApplyTaskContext context = {
@@ -3223,28 +3244,8 @@ static void b2EmitParticleDestructionEvent( b2ParticleSystem* system, int partic
 
 static float b2QuantizeParticleLifetime( const b2ParticleSystem* system, float lifetime );
 
-int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2ParticleDef* def )
+static int b2AppendParticle( b2ParticleSystem* system, const b2ParticleDef* def, int groupIndex )
 {
-	B2_CHECK_DEF( def );
-
-	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
-	if ( system == NULL )
-	{
-		return B2_NULL_INDEX;
-	}
-
-	int groupIndex = B2_NULL_INDEX;
-	if ( B2_IS_NON_NULL( def->groupId ) )
-	{
-		b2ParticleSystem* groupSystem = NULL;
-		b2ParticleGroup* group = b2TryGetParticleGroup( def->groupId, &groupSystem );
-		if ( group == NULL || groupSystem != system )
-		{
-			return B2_NULL_INDEX;
-		}
-		groupIndex = group->localIndex;
-	}
-
 	if ( b2AdmitParticle( system ) != 0 )
 	{
 		return B2_NULL_INDEX;
@@ -3268,6 +3269,37 @@ int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2Partic
 	system->depths[index] = 0.0f;
 	system->accumulationVectors[index] = b2Vec2_zero;
 	system->groupIndices[index] = groupIndex;
+
+	return index;
+}
+
+int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2ParticleDef* def )
+{
+	B2_CHECK_DEF( def );
+
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	if ( system == NULL )
+	{
+		return B2_NULL_INDEX;
+	}
+
+	int groupIndex = B2_NULL_INDEX;
+	if ( B2_IS_NON_NULL( def->groupId ) )
+	{
+		b2ParticleSystem* groupSystem = NULL;
+		b2ParticleGroup* group = b2TryGetParticleGroup( def->groupId, &groupSystem );
+		if ( group == NULL || groupSystem != system )
+		{
+			return B2_NULL_INDEX;
+		}
+		groupIndex = group->localIndex;
+	}
+
+	int index = b2AppendParticle( system, def, groupIndex );
+	if ( index == B2_NULL_INDEX )
+	{
+		return B2_NULL_INDEX;
+	}
 
 	if ( groupIndex != B2_NULL_INDEX )
 	{
@@ -3504,7 +3536,7 @@ static b2Vec2 b2ParticleGroupVelocity( const b2ParticleGroupDef* def, b2Vec2 pos
 	return b2Add( def->linearVelocity, angular );
 }
 
-static int b2CreateGroupParticle( b2ParticleSystemId systemId, b2ParticleGroupId groupId, const b2ParticleGroupDef* groupDef,
+static int b2CreateGroupParticle( b2ParticleSystem* system, int groupIndex, const b2ParticleGroupDef* groupDef,
 								  b2Vec2 position )
 {
 	b2ParticleDef particleDef = b2DefaultParticleDef();
@@ -3514,8 +3546,7 @@ static int b2CreateGroupParticle( b2ParticleSystemId systemId, b2ParticleGroupId
 	particleDef.color = groupDef->color;
 	particleDef.lifetime = groupDef->lifetime;
 	particleDef.userData = groupDef->userData;
-	particleDef.groupId = groupId;
-	return b2ParticleSystem_CreateParticle( systemId, &particleDef );
+	return b2AppendParticle( system, &particleDef, groupIndex );
 }
 
 static void b2RollbackParticleGroupCreation( b2World* world, b2ParticleSystem* system, b2ParticleGroup* group, int oldParticleCount,
@@ -3543,10 +3574,9 @@ static void b2RollbackParticleGroupCreation( b2World* world, b2ParticleSystem* s
 	b2RemoveZombieParticles( system );
 }
 
-static bool b2SampleAABB( b2ParticleSystemId systemId, b2ParticleGroupId groupId, const b2ParticleGroupDef* def, b2Transform transform,
+static bool b2SampleAABB( b2ParticleSystem* system, int groupIndex, const b2ParticleGroupDef* def, b2Transform transform,
 						  b2AABB aabb, bool ( *testFcn )( const b2ParticleGroupDef*, b2Transform, b2Vec2 ) )
 {
-	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
 	float diameter = 2.0f * system->def.radius;
 	float stride = def->stride > 0.0f ? def->stride : B2_PARTICLE_STRIDE * diameter;
 	for ( float y = floorf( aabb.lowerBound.y / stride ) * stride; y < aabb.upperBound.y; y += stride )
@@ -3556,7 +3586,7 @@ static bool b2SampleAABB( b2ParticleSystemId systemId, b2ParticleGroupId groupId
 			b2Vec2 p = { x, y };
 			if ( testFcn( def, transform, p ) )
 			{
-				if ( b2CreateGroupParticle( systemId, groupId, def, p ) == B2_NULL_INDEX )
+				if ( b2CreateGroupParticle( system, groupIndex, def, p ) == B2_NULL_INDEX )
 				{
 					return false;
 				}
@@ -3605,7 +3635,8 @@ b2ParticleGroupId b2ParticleSystem_CreateParticleGroup( b2ParticleSystemId syste
 	{
 		for ( int i = 0; i < def->particleCount; ++i )
 		{
-			if ( b2CreateGroupParticle( systemId, groupId, def, b2TransformPoint( transform, def->positionData[i] ) ) == B2_NULL_INDEX )
+			if ( b2CreateGroupParticle( system, group->localIndex, def, b2TransformPoint( transform, def->positionData[i] ) ) ==
+				 B2_NULL_INDEX )
 			{
 				success = false;
 				break;
@@ -3616,19 +3647,19 @@ b2ParticleGroupId b2ParticleSystem_CreateParticleGroup( b2ParticleSystemId syste
 	if ( success && def->circle != NULL )
 	{
 		b2AABB aabb = b2ComputeCircleAABB( def->circle, transform );
-		success = b2SampleAABB( systemId, groupId, def, transform, aabb, b2TestGroupCircle );
+		success = b2SampleAABB( system, group->localIndex, def, transform, aabb, b2TestGroupCircle );
 	}
 
 	if ( success && def->capsule != NULL )
 	{
 		b2AABB aabb = b2ComputeCapsuleAABB( def->capsule, transform );
-		success = b2SampleAABB( systemId, groupId, def, transform, aabb, b2TestGroupCapsule );
+		success = b2SampleAABB( system, group->localIndex, def, transform, aabb, b2TestGroupCapsule );
 	}
 
 	if ( success && def->polygon != NULL )
 	{
 		b2AABB aabb = b2ComputePolygonAABB( def->polygon, transform );
-		success = b2SampleAABB( systemId, groupId, def, transform, aabb, b2TestGroupPolygon );
+		success = b2SampleAABB( system, group->localIndex, def, transform, aabb, b2TestGroupPolygon );
 	}
 
 	if ( success && def->segment != NULL )
@@ -3643,7 +3674,7 @@ b2ParticleGroupId b2ParticleSystem_CreateParticleGroup( b2ParticleSystemId syste
 		for ( int i = 0; i < count; ++i )
 		{
 			float fraction = count == 1 ? 0.0f : (float)i / (float)( count - 1 );
-			if ( b2CreateGroupParticle( systemId, groupId, def, b2Lerp( p1, p2, fraction ) ) == B2_NULL_INDEX )
+			if ( b2CreateGroupParticle( system, group->localIndex, def, b2Lerp( p1, p2, fraction ) ) == B2_NULL_INDEX )
 			{
 				success = false;
 				break;
@@ -3657,7 +3688,7 @@ b2ParticleGroupId b2ParticleSystem_CreateParticleGroup( b2ParticleSystemId syste
 		return b2_nullParticleGroupId;
 	}
 
-	b2RefreshGroups( system );
+	b2ReorderParticlesByGroup( system, B2_NULL_INDEX );
 	if ( b2ParticleGroup_IsValid( groupId ) == false )
 	{
 		return b2_nullParticleGroupId;
@@ -4520,17 +4551,7 @@ static void b2UpdateParticlePairsAndTriads( b2ParticleSystem* system, int firstI
 
 static void b2UpdateReactiveParticlePairsAndTriads( b2ParticleSystem* system )
 {
-	bool hasReactiveParticles = false;
-	for ( int i = 0; i < system->particleCount; ++i )
-	{
-		if ( ( system->flags[i] & b2_reactiveParticle ) != 0 )
-		{
-			hasReactiveParticles = true;
-			break;
-		}
-	}
-
-	if ( hasReactiveParticles == false )
+	if ( ( system->allParticleFlags & b2_reactiveParticle ) == 0 )
 	{
 		return;
 	}
@@ -5587,7 +5608,7 @@ static void b2ParticleContactSolveTask( int startIndex, int endIndex, uint32_t w
 			int firstContact = bodyBlockIndex * context->blockSize;
 			int lastContact = b2MinInt( firstContact + context->blockSize, system->bodyContactCount );
 			b2ParticleBodyImpulseBlock* bodyImpulseBlock =
-				context->bodyImpulseBlocks != NULL ? context->bodyImpulseBlocks + blockIndex : NULL;
+				context->bodyImpulseBlocks != NULL ? context->bodyImpulseBlocks + bodyBlockIndex : NULL;
 
 			for ( int i = firstContact; i < lastContact; ++i )
 			{
@@ -6120,6 +6141,11 @@ static void b2SolveParticleForceBuffer( b2World* world, b2ParticleSystem* system
 static void b2SolveParticleGravity( b2World* world, b2ParticleSystem* system, float dt )
 {
 	b2Vec2 gravity = b2MulSV( dt * system->def.gravityScale, world->gravity );
+	if ( gravity.x == 0.0f && gravity.y == 0.0f )
+	{
+		return;
+	}
+
 	b2ParticleRangeTaskContext context = {
 		.system = system,
 		.type = b2_particleTaskSolveGravity,
@@ -6130,6 +6156,11 @@ static void b2SolveParticleGravity( b2World* world, b2ParticleSystem* system, fl
 
 static void b2SolveParticleViscous( b2World* world, b2ParticleSystem* system )
 {
+	if ( ( system->allParticleFlags & b2_viscousParticle ) == 0 || system->def.viscousStrength == 0.0f )
+	{
+		return;
+	}
+
 	float viscousStrength = system->def.viscousStrength;
 	float particleInvMass = b2GetParticleInvMass( system );
 	int contactBlockCount = b2GetParticleBlockCount( system->contactCount );
@@ -6141,7 +6172,8 @@ static void b2SolveParticleViscous( b2World* world, b2ParticleSystem* system )
 		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
 		int deltaBlockCount = blockCount * partitionCount;
 		b2ParticleVec2DeltaBlock* velocityBlocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
-		b2ParticleBodyImpulseBlock* bodyImpulseBlocks = b2AllocateParticleBodyImpulseBlocks( system, blockCount, false );
+		b2ParticleBodyImpulseBlock* bodyImpulseBlocks =
+			bodyContactBlockCount > 0 ? b2AllocateParticleBodyImpulseBlocks( system, bodyContactBlockCount, false ) : NULL;
 		b2ParticleContactSolveTaskContext context = {
 			.world = world,
 			.system = system,
@@ -6158,12 +6190,17 @@ static void b2SolveParticleViscous( b2World* world, b2ParticleSystem* system )
 		};
 		b2RunParticleReductionTask( world, system, b2ParticleContactSolveTask, blockCount, 1, &context );
 		b2ApplyParticleVec2DeltaBlocks( world, system, velocityBlocks, blockCount, partitionCount, system->velocities );
-		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, blockCount );
+		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, bodyContactBlockCount );
 	}
 }
 
 static void b2SolveParticleRepulsive( b2World* world, b2ParticleSystem* system, float dt )
 {
+	if ( ( system->allParticleFlags & b2_repulsiveParticle ) == 0 || system->def.repulsiveStrength == 0.0f )
+	{
+		return;
+	}
+
 	float repulsiveStrength = system->def.repulsiveStrength * b2GetCriticalVelocity( system, dt );
 	int blockCount = b2GetParticleBlockCount( system->contactCount );
 	if ( blockCount > 0 )
@@ -6190,6 +6227,11 @@ static void b2SolveParticleRepulsive( b2World* world, b2ParticleSystem* system, 
 
 static void b2SolveParticlePowder( b2World* world, b2ParticleSystem* system, float dt )
 {
+	if ( ( system->allParticleFlags & b2_powderParticle ) == 0 || system->def.powderStrength == 0.0f )
+	{
+		return;
+	}
+
 	float powderStrength = system->def.powderStrength * b2GetCriticalVelocity( system, dt );
 	float minWeight = 1.0f - B2_PARTICLE_STRIDE;
 	int blockCount = b2GetParticleBlockCount( system->contactCount );
@@ -6218,6 +6260,12 @@ static void b2SolveParticlePowder( b2World* world, b2ParticleSystem* system, flo
 
 static void b2SolveParticleTensile( b2World* world, b2ParticleSystem* system, float dt )
 {
+	if ( ( system->allParticleFlags & b2_tensileParticle ) == 0 ||
+		 ( system->def.surfaceTensionPressureStrength == 0.0f && system->def.surfaceTensionNormalStrength == 0.0f ) )
+	{
+		return;
+	}
+
 	b2ParticleRangeTaskContext clearContext = {
 		.system = system,
 		.type = b2_particleTaskClearAccumulationVectors,
@@ -6321,16 +6369,23 @@ static void b2RunParticleSolidDepthTask( b2World* world, b2ParticleSolidDepthTas
 	b2RunParticleTask( world, context->system, b2ParticleSolidDepthTask, groupCount, 1, context );
 }
 
+static bool b2ParticleSystemHasGroupFlag( const b2ParticleSystem* system, uint32_t groupFlag )
+{
+	for ( int groupIndex = 0; groupIndex < system->groupCount; ++groupIndex )
+	{
+		const b2ParticleGroup* group = system->groups + groupIndex;
+		if ( group->id != B2_NULL_INDEX && group->count > 0 && ( group->groupFlags & groupFlag ) != 0 )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static void b2SolveParticleSolid( b2World* world, b2ParticleSystem* system, float dt )
 {
 	uint64_t depthTicks = b2GetTicks();
-	float diameter = 2.0f * system->def.radius;
-	b2ParticleRangeTaskContext clearDepthContext = {
-		.system = system,
-		.type = b2_particleTaskClearDepths,
-	};
-	b2RunParticleRangeTask( world, &clearDepthContext, system->particleCount );
-
 	bool hasSolidGroups = false;
 	int maxIterationCount = 0;
 	for ( int groupIndex = 0; groupIndex < system->groupCount; ++groupIndex )
@@ -6351,6 +6406,13 @@ static void b2SolveParticleSolid( b2World* world, b2ParticleSystem* system, floa
 		system->profile.solidDepth += b2GetMilliseconds( depthTicks );
 		return;
 	}
+
+	float diameter = 2.0f * system->def.radius;
+	b2ParticleRangeTaskContext clearDepthContext = {
+		.system = system,
+		.type = b2_particleTaskClearDepths,
+	};
+	b2RunParticleRangeTask( world, &clearDepthContext, system->particleCount );
 
 	b2ParticleRangeTaskContext clearAccumulationContext = {
 		.system = system,
@@ -6463,6 +6525,12 @@ static void b2SolveParticleSolid( b2World* world, b2ParticleSystem* system, floa
 
 static void b2SolveParticleStaticPressure( b2World* world, b2ParticleSystem* system, float dt )
 {
+	if ( ( system->allParticleFlags & b2_staticPressureParticle ) == 0 || system->def.staticPressureStrength == 0.0f ||
+		 system->def.staticPressureIterations <= 0 )
+	{
+		return;
+	}
+
 	float criticalVelocity = b2GetCriticalVelocity( system, dt );
 	float criticalPressure = system->def.density * criticalVelocity * criticalVelocity;
 	float pressurePerWeight = system->def.staticPressureStrength * criticalPressure;
@@ -6543,7 +6611,8 @@ static void b2SolveParticlePressure( b2World* world, b2ParticleSystem* system, f
 		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
 		int deltaBlockCount = blockCount * partitionCount;
 		b2ParticleVec2DeltaBlock* velocityBlocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
-		b2ParticleBodyImpulseBlock* bodyImpulseBlocks = b2AllocateParticleBodyImpulseBlocks( system, blockCount, false );
+		b2ParticleBodyImpulseBlock* bodyImpulseBlocks =
+			bodyContactBlockCount > 0 ? b2AllocateParticleBodyImpulseBlocks( system, bodyContactBlockCount, false ) : NULL;
 		b2ParticleContactSolveTaskContext context = {
 			.world = world,
 			.system = system,
@@ -6561,7 +6630,7 @@ static void b2SolveParticlePressure( b2World* world, b2ParticleSystem* system, f
 		};
 		b2RunParticleReductionTask( world, system, b2ParticleContactSolveTask, blockCount, 1, &context );
 		b2ApplyParticleVec2DeltaBlocks( world, system, velocityBlocks, blockCount, partitionCount, system->velocities );
-		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, blockCount );
+		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, bodyContactBlockCount );
 	}
 
 	system->profile.pressure += b2GetMilliseconds( ticks );
@@ -6582,7 +6651,8 @@ static void b2SolveParticleDamping( b2World* world, b2ParticleSystem* system, fl
 		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
 		int deltaBlockCount = blockCount * partitionCount;
 		b2ParticleVec2DeltaBlock* velocityBlocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
-		b2ParticleBodyImpulseBlock* bodyImpulseBlocks = b2AllocateParticleBodyImpulseBlocks( system, blockCount, false );
+		b2ParticleBodyImpulseBlock* bodyImpulseBlocks =
+			bodyContactBlockCount > 0 ? b2AllocateParticleBodyImpulseBlocks( system, bodyContactBlockCount, false ) : NULL;
 		b2ParticleContactSolveTaskContext context = {
 			.world = world,
 			.system = system,
@@ -6600,7 +6670,7 @@ static void b2SolveParticleDamping( b2World* world, b2ParticleSystem* system, fl
 		};
 		b2RunParticleReductionTask( world, system, b2ParticleContactSolveTask, blockCount, 1, &context );
 		b2ApplyParticleVec2DeltaBlocks( world, system, velocityBlocks, blockCount, partitionCount, system->velocities );
-		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, blockCount );
+		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, bodyContactBlockCount );
 	}
 
 	system->profile.damping += b2GetMilliseconds( ticks );
@@ -6653,7 +6723,7 @@ static void b2SolveParticleSpringElastic( b2World* world, b2ParticleSystem* syst
 	float invDt = dt > 0.0f ? 1.0f / dt : 0.0f;
 	float springStrength = invDt * system->def.springStrength;
 	int pairBlockCount = b2GetParticleBlockCount( system->pairCount );
-	if ( pairBlockCount > 0 )
+	if ( pairBlockCount > 0 && ( system->allParticleFlags & b2_springParticle ) != 0 && system->def.springStrength != 0.0f )
 	{
 		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
 		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
@@ -6676,7 +6746,7 @@ static void b2SolveParticleSpringElastic( b2World* world, b2ParticleSystem* syst
 
 	float elasticStrength = invDt * system->def.elasticStrength;
 	int triadBlockCount = b2GetParticleBlockCount( system->triadCount );
-	if ( triadBlockCount > 0 )
+	if ( triadBlockCount > 0 && ( system->allParticleFlags & b2_elasticParticle ) != 0 && system->def.elasticStrength != 0.0f )
 	{
 		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
 		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
@@ -7219,6 +7289,11 @@ static void b2ParticleRigidGroupTask( int startIndex, int endIndex, uint32_t wor
 
 static void b2SolveRigidParticles( b2ParticleSystem* system, float dt )
 {
+	if ( b2ParticleSystemHasGroupFlag( system, b2_rigidParticleGroup ) == false )
+	{
+		return;
+	}
+
 	b2RefreshGroups( system );
 	b2World* world = b2TryGetWorld( system->worldId );
 	float invDt = dt > 0.0f ? 1.0f / dt : 0.0f;
@@ -7327,6 +7402,11 @@ static void b2IntegrateParticles( b2World* world, b2ParticleSystem* system, floa
 
 static void b2SolveParticleLifetimes( b2World* world, b2ParticleSystem* system, float dt )
 {
+	if ( system->def.destroyByAge == false )
+	{
+		return;
+	}
+
 	uint64_t ticks = b2GetTicks();
 	b2ParticleRangeTaskContext context = {
 		.system = system,
