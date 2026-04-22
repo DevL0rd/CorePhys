@@ -134,6 +134,21 @@ typedef struct b2ParticleBodyImpulseSum
 	bool touched;
 } b2ParticleBodyImpulseSum;
 
+typedef struct b2ParticleGroupDeltaData
+{
+	int groupIndex;
+	b2Vec2 linearDelta;
+	float angularDelta;
+} b2ParticleGroupDeltaData;
+
+typedef struct b2ParticleGroupDeltaBlock
+{
+	b2ParticleGroupDeltaData* deltas;
+	int count;
+	int capacity;
+	b2ParticleScratchArray* payload;
+} b2ParticleGroupDeltaBlock;
+
 typedef struct b2ParticleShapeCandidateBlock
 {
 	int* shapeIndices;
@@ -219,7 +234,9 @@ typedef enum b2ParticleContactSolveTaskType
 	b2_particleContactTaskSolidEjection,
 	b2_particleContactTaskStaticPressure,
 	b2_particleContactTaskPressure,
-	b2_particleContactTaskDamping
+	b2_particleContactTaskDamping,
+	b2_particleContactTaskExtraDamping,
+	b2_particleContactTaskRigidDamping
 } b2ParticleContactSolveTaskType;
 
 typedef struct b2ParticleContactSolveTaskContext
@@ -230,6 +247,7 @@ typedef struct b2ParticleContactSolveTaskContext
 	b2ParticleFloatDeltaBlock* floatBlocks;
 	b2ParticleVec2DeltaBlock* vec2Blocks;
 	b2ParticleBodyImpulseBlock* bodyImpulseBlocks;
+	b2ParticleGroupDeltaBlock* groupDeltaBlocks;
 	int contactBlockCount;
 	int bodyContactBlockCount;
 	int blockSize;
@@ -905,6 +923,18 @@ static void b2AttachParticleBodyImpulsePayloads( b2ParticleSystem* system, b2Par
 	}
 }
 
+static void b2AttachParticleGroupDeltaPayloads( b2ParticleSystem* system, b2ParticleGroupDeltaBlock* blocks, int blockCount )
+{
+	b2ReserveParticlePayloadStorage( &system->groupDeltaBlockPayloads, blockCount, (int)sizeof( b2ParticleGroupDeltaData ) );
+	for ( int i = 0; i < blockCount; ++i )
+	{
+		b2ParticleScratchArray* payload = system->groupDeltaBlockPayloads.arrays + i;
+		blocks[i].payload = payload;
+		blocks[i].deltas = b2ParticleScratchArray_Data( payload, b2ParticleGroupDeltaData );
+		blocks[i].capacity = payload->capacity;
+	}
+}
+
 static void b2AttachParticleFloatDeltaPayloads( b2ParticleSystem* system, b2ParticleFloatDeltaBlock* blocks, int blockCount )
 {
 	b2ReserveParticlePayloadStorage( &system->floatDeltaBlockPayloads, blockCount, (int)sizeof( b2ParticleFloatDeltaData ) );
@@ -1293,6 +1323,34 @@ static void b2AppendParticleBodyImpulseBlock( b2ParticleBodyImpulseBlock* block,
 {
 	b2ReserveParticleBodyImpulseBlock( block, block->count + 1 );
 	block->impulses[block->count++] = impulse;
+}
+
+static void b2ReserveParticleGroupDeltaBlock( b2ParticleGroupDeltaBlock* block, int capacity )
+{
+	if ( block == NULL || capacity <= block->capacity )
+	{
+		return;
+	}
+
+	int oldCapacity = block->capacity;
+	int newCapacity = b2MaxParticleCapacity( oldCapacity, capacity );
+	if ( block->payload != NULL )
+	{
+		b2ParticleScratchArray_Reserve( block->payload, newCapacity );
+		block->deltas = b2ParticleScratchArray_Data( block->payload, b2ParticleGroupDeltaData );
+		newCapacity = block->payload->capacity;
+	}
+	else
+	{
+		block->deltas = b2GrowParticleBuffer( block->deltas, oldCapacity, newCapacity, sizeof( b2ParticleGroupDeltaData ) );
+	}
+	block->capacity = newCapacity;
+}
+
+static void b2AppendParticleGroupDeltaBlock( b2ParticleGroupDeltaBlock* block, b2ParticleGroupDeltaData delta )
+{
+	b2ReserveParticleGroupDeltaBlock( block, block->count + 1 );
+	block->deltas[block->count++] = delta;
 }
 
 static void b2ReserveParticleShapeCandidateBlock( b2ParticleShapeCandidateBlock* block, int capacity )
@@ -2040,6 +2098,7 @@ static void b2DestroyParticleSystemStorage( b2ParticleSystem* system )
 	b2DestroyParticlePayloadStorage( &system->shapeCandidatePayloads );
 	b2DestroyParticlePayloadStorage( &system->floatDeltaBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->vec2DeltaBlockPayloads );
+	b2DestroyParticlePayloadStorage( &system->groupDeltaBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->barrierGroupDeltaBlockPayloads );
 	b2DestroyParticlePayloadStorage( &system->eventContactSortPayloads );
 	b2DestroyParticlePayloadStorage( &system->eventBodyContactSortPayloads );
@@ -5429,6 +5488,16 @@ static b2ParticleGroup* b2GetParticleSolidContactGroup( b2ParticleSystem* system
 	return group;
 }
 
+static b2ParticleGroup* b2GetParticleRigidGroup( b2ParticleSystem* system, int particleIndex );
+static b2Vec2 b2GetParticleLinearVelocity( b2ParticleSystem* system, int particleIndex, b2Vec2 point );
+static void b2InitParticleDampingParameter( float* invMass, float* invInertia, float* tangentDistance, float mass,
+										   float inertia, b2Vec2 center, b2Vec2 point, b2Vec2 normal );
+static void b2InitParticleDampingParameterWithGroupOrParticle( b2ParticleSystem* system, float* invMass, float* invInertia,
+															  float* tangentDistance, b2ParticleGroup* group,
+															  int particleIndex, b2Vec2 point, b2Vec2 normal );
+static float b2ComputeParticleDampingImpulse( float invMassA, float invInertiaA, float tangentDistanceA, float invMassB,
+											 float invInertiaB, float tangentDistanceB, float normalVelocity );
+
 static void b2ParticleContactSolveTask( int startIndex, int endIndex, uint32_t workerIndex, void* taskContext )
 {
 	B2_UNUSED( workerIndex );
@@ -5606,6 +5675,65 @@ static void b2ParticleContactSolveTask( int startIndex, int endIndex, uint32_t w
 					}
 					break;
 
+					case b2_particleContactTaskRigidDamping:
+					{
+						b2ParticleGroup* groupA = b2GetParticleRigidGroup( system, indexA );
+						b2ParticleGroup* groupB = b2GetParticleRigidGroup( system, indexB );
+						if ( system->groupIndices[indexA] == system->groupIndices[indexB] || ( groupA == NULL && groupB == NULL ) )
+						{
+							break;
+						}
+
+						b2Vec2 point = b2MulSV( 0.5f, b2Add( system->positions[indexA], system->positions[indexB] ) );
+						b2Vec2 relativeVelocity =
+							b2Sub( b2GetParticleLinearVelocity( system, indexB, point ), b2GetParticleLinearVelocity( system, indexA, point ) );
+						float vn = b2Dot( relativeVelocity, contact->normal );
+						if ( vn >= 0.0f )
+						{
+							break;
+						}
+
+						float invMassA, invInertiaA, tangentDistanceA;
+						float invMassB, invInertiaB, tangentDistanceB;
+						b2InitParticleDampingParameterWithGroupOrParticle(
+							system, &invMassA, &invInertiaA, &tangentDistanceA, groupA, indexA, point, contact->normal );
+						b2InitParticleDampingParameterWithGroupOrParticle(
+							system, &invMassB, &invInertiaB, &tangentDistanceB, groupB, indexB, point, contact->normal );
+						float impulse = context->scalarA * contact->weight *
+										b2ComputeParticleDampingImpulse(
+											invMassA, invInertiaA, tangentDistanceA, invMassB, invInertiaB, tangentDistanceB, vn );
+
+						if ( groupA != NULL )
+						{
+							b2AppendParticleGroupDeltaBlock(
+								context->groupDeltaBlocks + blockIndex,
+								(b2ParticleGroupDeltaData){ groupA->localIndex, b2MulSV( impulse * invMassA, contact->normal ),
+															impulse * tangentDistanceA * invInertiaA } );
+						}
+						else
+						{
+							b2AppendParticleTaskVec2Delta(
+								context, blockIndex, indexA, b2MulSV( impulse * invMassA, contact->normal ) );
+						}
+
+						if ( groupB != NULL )
+						{
+							b2AppendParticleGroupDeltaBlock(
+								context->groupDeltaBlocks + blockIndex,
+								(b2ParticleGroupDeltaData){ groupB->localIndex, b2MulSV( -impulse * invMassB, contact->normal ),
+															-impulse * tangentDistanceB * invInertiaB } );
+						}
+						else
+						{
+							b2AppendParticleTaskVec2Delta(
+								context, blockIndex, indexB, b2MulSV( -impulse * invMassB, contact->normal ) );
+						}
+					}
+					break;
+
+					case b2_particleContactTaskExtraDamping:
+						break;
+
 				}
 			}
 		}
@@ -5687,6 +5815,83 @@ static void b2ParticleContactSolveTask( int startIndex, int endIndex, uint32_t w
 						b2AppendParticleTaskVec2Delta( context, blockIndex, particleIndex, b2MulSV( invMass, impulse ) );
 						b2AppendParticleBodyImpulseBlock(
 							bodyImpulseBlock, (b2ParticleBodyImpulseData){ contact->shapeId, b2Neg( impulse ), point } );
+					}
+					break;
+
+					case b2_particleContactTaskExtraDamping:
+					{
+						if ( ( system->flags[particleIndex] & b2_staticPressureParticle ) == 0 )
+						{
+							break;
+						}
+						b2Shape* shape = b2GetParticleContactShape( world, contact->shapeId );
+						if ( shape == NULL )
+						{
+							break;
+						}
+
+						b2Body* body = b2BodyArray_Get( &world->bodies, shape->bodyId );
+						b2Vec2 point = system->positions[particleIndex];
+						b2Vec2 relativeVelocity = b2Sub( b2GetBodyVelocityAtPoint( world, body, point ), system->velocities[particleIndex] );
+						float vn = b2Dot( relativeVelocity, contact->normal );
+						if ( vn >= 0.0f )
+						{
+							break;
+						}
+
+						b2Vec2 impulse = b2MulSV( 0.5f * contact->mass * vn, contact->normal );
+						b2AppendParticleTaskVec2Delta( context, blockIndex, particleIndex, b2MulSV( context->scalarA, impulse ) );
+						b2AppendParticleBodyImpulseBlock(
+							bodyImpulseBlock, (b2ParticleBodyImpulseData){ contact->shapeId, b2Neg( impulse ), point } );
+					}
+					break;
+
+					case b2_particleContactTaskRigidDamping:
+					{
+						b2ParticleGroup* group = b2GetParticleRigidGroup( system, particleIndex );
+						if ( group == NULL )
+						{
+							break;
+						}
+
+						b2Shape* shape = b2GetParticleContactShape( world, contact->shapeId );
+						if ( shape == NULL )
+						{
+							break;
+						}
+
+						b2Body* body = b2BodyArray_Get( &world->bodies, shape->bodyId );
+						b2BodySim* sim = b2GetBodySim( world, body );
+						if ( sim == NULL )
+						{
+							break;
+						}
+
+						b2Vec2 point = system->positions[particleIndex];
+						b2Vec2 relativeVelocity =
+							b2Sub( b2GetBodyVelocityAtPoint( world, body, point ), b2GetParticleLinearVelocity( system, particleIndex, point ) );
+						float vn = b2Dot( relativeVelocity, contact->normal );
+						if ( vn >= 0.0f )
+						{
+							break;
+						}
+
+						float invMassA, invInertiaA, tangentDistanceA;
+						float invMassB, invInertiaB, tangentDistanceB;
+						b2InitParticleDampingParameterWithGroupOrParticle(
+							system, &invMassA, &invInertiaA, &tangentDistanceA, group, particleIndex, point, contact->normal );
+						b2InitParticleDampingParameter(
+							&invMassB, &invInertiaB, &tangentDistanceB, body->mass, body->inertia, sim->center, point, contact->normal );
+						float impulse = context->scalarA * b2MinFloat( contact->weight, 1.0f ) *
+										b2ComputeParticleDampingImpulse(
+											invMassA, invInertiaA, tangentDistanceA, invMassB, invInertiaB, tangentDistanceB, vn );
+						b2AppendParticleGroupDeltaBlock(
+							context->groupDeltaBlocks + blockIndex,
+							(b2ParticleGroupDeltaData){ group->localIndex, b2MulSV( impulse * invMassA, contact->normal ),
+														impulse * tangentDistanceA * invInertiaA } );
+						b2AppendParticleBodyImpulseBlock(
+							bodyImpulseBlock,
+							(b2ParticleBodyImpulseData){ contact->shapeId, b2MulSV( -impulse, contact->normal ), point } );
 					}
 					break;
 
@@ -6164,6 +6369,36 @@ static void b2ApplyParticleBodyImpulseBlocks( b2World* world, b2ParticleBodyImpu
 	b2Free( sums, bodyCount * (int)sizeof( b2ParticleBodyImpulseSum ) );
 }
 
+static void b2ApplyParticleGroupDeltaBlocks( b2ParticleSystem* system, b2ParticleGroupDeltaBlock* blocks, int blockCount )
+{
+	if ( blocks == NULL || blockCount == 0 )
+	{
+		return;
+	}
+
+	for ( int blockIndex = 0; blockIndex < blockCount; ++blockIndex )
+	{
+		b2ParticleGroupDeltaBlock* block = blocks + blockIndex;
+		for ( int i = 0; i < block->count; ++i )
+		{
+			b2ParticleGroupDeltaData* delta = block->deltas + i;
+			b2ParticleGroup* group = b2GetParticleGroupByLocalIndex( system, delta->groupIndex );
+			if ( group == NULL || ( group->groupFlags & b2_rigidParticleGroup ) == 0 )
+			{
+				continue;
+			}
+
+			group->linearVelocity = b2Add( group->linearVelocity, delta->linearDelta );
+			group->angularVelocity += delta->angularDelta;
+		}
+
+		if ( block->payload == NULL )
+		{
+			b2Free( block->deltas, block->capacity * (int)sizeof( b2ParticleGroupDeltaData ) );
+		}
+	}
+}
+
 static void b2SolveParticleForceBuffer( b2World* world, b2ParticleSystem* system, float dt )
 {
 	uint64_t ticks = b2GetTicks();
@@ -6427,7 +6662,6 @@ static void b2SolveParticleSolid( b2World* world, b2ParticleSystem* system, floa
 {
 	uint64_t depthTicks = b2GetTicks();
 	bool hasSolidGroups = false;
-	int maxIterationCount = 0;
 	for ( int groupIndex = 0; groupIndex < system->groupCount; ++groupIndex )
 	{
 		b2ParticleGroup* group = system->groups + groupIndex;
@@ -6437,7 +6671,6 @@ static void b2SolveParticleSolid( b2World* world, b2ParticleSystem* system, floa
 		}
 
 		hasSolidGroups = true;
-		maxIterationCount = b2MaxInt( maxIterationCount, (int)sqrtf( (float)group->count ) );
 	}
 
 	int blockCount = b2GetParticleBlockCount( system->contactCount );
@@ -6489,7 +6722,8 @@ static void b2SolveParticleSolid( b2World* world, b2ParticleSystem* system, floa
 
 	float* currentDepths = system->depths;
 	float* nextDepths = system->accumulations;
-	for ( int iteration = 0; iteration < maxIterationCount && blockCount > 0; ++iteration )
+	int iterationCount = (int)sqrtf( (float)system->particleCount );
+	for ( int iteration = 0; iteration < iterationCount && blockCount > 0; ++iteration )
 	{
 		b2ParticleSolidDepthTaskContext copyContext = {
 			.system = system,
@@ -6716,6 +6950,44 @@ static void b2SolveParticleDamping( b2World* world, b2ParticleSystem* system, fl
 	system->profile.damping += b2GetMilliseconds( ticks );
 }
 
+static void b2SolveParticleExtraDamping( b2World* world, b2ParticleSystem* system )
+{
+	if ( ( system->allParticleFlags & b2_staticPressureParticle ) == 0 || system->bodyContactCount == 0 )
+	{
+		return;
+	}
+
+	uint64_t ticks = b2GetTicks();
+	float particleInvMass = b2GetParticleInvMass( system );
+	int bodyContactBlockCount = b2GetParticleBlockCount( system->bodyContactCount );
+	if ( bodyContactBlockCount > 0 )
+	{
+		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
+		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
+		int deltaBlockCount = bodyContactBlockCount * partitionCount;
+		b2ParticleVec2DeltaBlock* velocityBlocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
+		b2ParticleBodyImpulseBlock* bodyImpulseBlocks =
+			b2AllocateParticleBodyImpulseBlocks( system, bodyContactBlockCount, false );
+		b2ParticleContactSolveTaskContext context = {
+			.world = world,
+			.system = system,
+			.type = b2_particleContactTaskExtraDamping,
+			.vec2Blocks = velocityBlocks,
+			.bodyImpulseBlocks = bodyImpulseBlocks,
+			.contactBlockCount = 0,
+			.bodyContactBlockCount = bodyContactBlockCount,
+			.blockSize = B2_PARTICLE_TASK_MIN_RANGE,
+			.deltaPartitionCount = partitionCount,
+			.deltaPartitionSize = partitionSize,
+			.scalarA = particleInvMass,
+		};
+		b2RunParticleReductionTask( world, system, b2ParticleContactSolveTask, bodyContactBlockCount, 1, &context );
+		b2ApplyParticleVec2DeltaBlocks( world, system, velocityBlocks, bodyContactBlockCount, partitionCount, system->velocities );
+		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, bodyContactBlockCount );
+	}
+	system->profile.damping += b2GetMilliseconds( ticks );
+}
+
 static void b2MixParticleColors( b2ParticleColor* colorA, b2ParticleColor* colorB, int strength )
 {
 	int dr = ( strength * ( (int)colorB->r - (int)colorA->r ) ) >> 8;
@@ -6761,28 +7033,6 @@ static void b2SolveParticleColorMixing( b2ParticleSystem* system )
 static void b2SolveParticleSpringElastic( b2World* world, b2ParticleSystem* system, float dt )
 {
 	float invDt = dt > 0.0f ? 1.0f / dt : 0.0f;
-	float springStrength = invDt * system->def.springStrength;
-	int pairBlockCount = b2GetParticleBlockCount( system->pairCount );
-	if ( pairBlockCount > 0 && ( system->allParticleFlags & b2_springParticle ) != 0 && system->def.springStrength != 0.0f )
-	{
-		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
-		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
-		int deltaBlockCount = pairBlockCount * partitionCount;
-		b2ParticleVec2DeltaBlock* blocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
-		b2ParticleSpringSolveTaskContext context = {
-			.system = system,
-			.type = b2_particleSpringTaskPair,
-			.vec2Blocks = blocks,
-			.blockSize = B2_PARTICLE_TASK_MIN_RANGE,
-			.deltaPartitionCount = partitionCount,
-			.deltaPartitionSize = partitionSize,
-			.dt = dt,
-			.invDt = invDt,
-			.strength = springStrength,
-		};
-		b2RunParticleReductionTask( world, system, b2ParticleSpringSolveTask, pairBlockCount, 1, &context );
-		b2ApplyParticleVec2DeltaBlocks( world, system, blocks, pairBlockCount, partitionCount, system->velocities );
-	}
 
 	float elasticStrength = invDt * system->def.elasticStrength;
 	int triadBlockCount = b2GetParticleBlockCount( system->triadCount );
@@ -6806,6 +7056,29 @@ static void b2SolveParticleSpringElastic( b2World* world, b2ParticleSystem* syst
 		b2RunParticleReductionTask( world, system, b2ParticleSpringSolveTask, triadBlockCount, 1, &context );
 		b2ApplyParticleVec2DeltaBlocks( world, system, blocks, triadBlockCount, partitionCount, system->velocities );
 	}
+
+	float springStrength = invDt * system->def.springStrength;
+	int pairBlockCount = b2GetParticleBlockCount( system->pairCount );
+	if ( pairBlockCount > 0 && ( system->allParticleFlags & b2_springParticle ) != 0 && system->def.springStrength != 0.0f )
+	{
+		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
+		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
+		int deltaBlockCount = pairBlockCount * partitionCount;
+		b2ParticleVec2DeltaBlock* blocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
+		b2ParticleSpringSolveTaskContext context = {
+			.system = system,
+			.type = b2_particleSpringTaskPair,
+			.vec2Blocks = blocks,
+			.blockSize = B2_PARTICLE_TASK_MIN_RANGE,
+			.deltaPartitionCount = partitionCount,
+			.deltaPartitionSize = partitionSize,
+			.dt = dt,
+			.invDt = invDt,
+			.strength = springStrength,
+		};
+		b2RunParticleReductionTask( world, system, b2ParticleSpringSolveTask, pairBlockCount, 1, &context );
+		b2ApplyParticleVec2DeltaBlocks( world, system, blocks, pairBlockCount, partitionCount, system->velocities );
+	}
 }
 
 static b2Vec2 b2GetParticleLinearVelocity( b2ParticleSystem* system, int particleIndex, b2Vec2 point )
@@ -6818,6 +7091,91 @@ static b2Vec2 b2GetParticleLinearVelocity( b2ParticleSystem* system, int particl
 	}
 
 	return system->velocities[particleIndex];
+}
+
+static b2ParticleGroup* b2GetParticleRigidGroup( b2ParticleSystem* system, int particleIndex )
+{
+	b2ParticleGroup* group = b2GetParticleGroupByLocalIndex( system, system->groupIndices[particleIndex] );
+	return group != NULL && ( group->groupFlags & b2_rigidParticleGroup ) != 0 ? group : NULL;
+}
+
+static void b2InitParticleDampingParameter( float* invMass, float* invInertia, float* tangentDistance, float mass,
+										   float inertia, b2Vec2 center, b2Vec2 point, b2Vec2 normal )
+{
+	*invMass = mass > 0.0f ? 1.0f / mass : 0.0f;
+	*invInertia = inertia > 0.0f ? 1.0f / inertia : 0.0f;
+	*tangentDistance = b2Cross( b2Sub( point, center ), normal );
+}
+
+static void b2InitParticleDampingParameterWithGroupOrParticle( b2ParticleSystem* system, float* invMass, float* invInertia,
+															  float* tangentDistance, b2ParticleGroup* group,
+															  int particleIndex, b2Vec2 point, b2Vec2 normal )
+{
+	if ( group != NULL )
+	{
+		b2InitParticleDampingParameter(
+			invMass, invInertia, tangentDistance, group->mass, group->inertia, group->center, point, normal );
+		return;
+	}
+
+	float mass = ( system->flags[particleIndex] & b2_wallParticle ) != 0 ? 0.0f : b2GetParticleMass( system );
+	b2InitParticleDampingParameter( invMass, invInertia, tangentDistance, mass, 0.0f, point, point, normal );
+}
+
+static float b2ComputeParticleDampingImpulse( float invMassA, float invInertiaA, float tangentDistanceA, float invMassB,
+											 float invInertiaB, float tangentDistanceB, float normalVelocity )
+{
+	float invMass = invMassA + invInertiaA * tangentDistanceA * tangentDistanceA + invMassB +
+					invInertiaB * tangentDistanceB * tangentDistanceB;
+	return invMass > 0.0f ? normalVelocity / invMass : 0.0f;
+}
+
+static void b2SolveRigidDampingParticles( b2World* world, b2ParticleSystem* system )
+{
+	if ( b2ParticleSystemHasGroupFlag( system, b2_rigidParticleGroup ) == false )
+	{
+		return;
+	}
+
+	uint64_t ticks = b2GetTicks();
+	float damping = system->def.dampingStrength;
+	int contactBlockCount = b2GetParticleBlockCount( system->contactCount );
+	int bodyContactBlockCount = b2GetParticleBlockCount( system->bodyContactCount );
+	int blockCount = contactBlockCount + bodyContactBlockCount;
+	if ( blockCount > 0 )
+	{
+		int partitionCount = b2GetParticleDeltaPartitionCount( world, system );
+		int partitionSize = b2GetParticleDeltaPartitionSize( system, partitionCount );
+		int deltaBlockCount = blockCount * partitionCount;
+		b2ParticleVec2DeltaBlock* velocityBlocks = b2AllocateParticleVec2DeltaBlocks( system, deltaBlockCount, true );
+		b2ParticleBodyImpulseBlock* bodyImpulseBlocks =
+			bodyContactBlockCount > 0 ? b2AllocateParticleBodyImpulseBlocks( system, bodyContactBlockCount, false ) : NULL;
+		uint64_t scratchTicks = b2GetTicks();
+		b2ParticleGroupDeltaBlock* groupDeltaBlocks =
+			b2ParticleScratchBuffer_AllocArray( &system->scratch, blockCount, b2ParticleGroupDeltaBlock );
+		memset( groupDeltaBlocks, 0, blockCount * sizeof( b2ParticleGroupDeltaBlock ) );
+		b2AttachParticleGroupDeltaPayloads( system, groupDeltaBlocks, blockCount );
+		system->profile.scratch += b2GetMilliseconds( scratchTicks );
+		b2ParticleContactSolveTaskContext context = {
+			.world = world,
+			.system = system,
+			.type = b2_particleContactTaskRigidDamping,
+			.vec2Blocks = velocityBlocks,
+			.bodyImpulseBlocks = bodyImpulseBlocks,
+			.groupDeltaBlocks = groupDeltaBlocks,
+			.contactBlockCount = contactBlockCount,
+			.bodyContactBlockCount = bodyContactBlockCount,
+			.blockSize = B2_PARTICLE_TASK_MIN_RANGE,
+			.deltaPartitionCount = partitionCount,
+			.deltaPartitionSize = partitionSize,
+			.scalarA = damping,
+		};
+		b2RunParticleReductionTask( world, system, b2ParticleContactSolveTask, blockCount, 1, &context );
+		b2ApplyParticleVec2DeltaBlocks( world, system, velocityBlocks, blockCount, partitionCount, system->velocities );
+		b2ApplyParticleBodyImpulseBlocks( world, bodyImpulseBlocks, bodyContactBlockCount );
+		b2ApplyParticleGroupDeltaBlocks( system, groupDeltaBlocks, blockCount );
+	}
+	system->profile.damping += b2GetMilliseconds( ticks );
 }
 
 static bool b2SolveParticleBarrierIntersection( b2Vec2 pa, b2Vec2 va, b2Vec2 pb, b2Vec2 vb, b2Vec2 pc, b2Vec2 vc, float tmax,
@@ -7539,8 +7897,10 @@ static void b2StepParticleSystem( b2World* world, b2ParticleSystem* system, floa
 		b2SolveParticleStaticPressure( world, system, subStep );
 		b2SolveParticlePressure( world, system, subStep );
 		b2SolveParticleDamping( world, system, subStep );
+		b2SolveParticleExtraDamping( world, system );
 		b2SolveParticleSpringElastic( world, system, subStep );
 		b2LimitParticleVelocities( world, system, subStep );
+		b2SolveRigidDampingParticles( world, system );
 		b2SolveBarrierParticles( system, subStep );
 		b2SolveParticleBodyCollision( world, system, subStep );
 		b2SolveRigidParticles( system, subStep );
@@ -7705,6 +8065,7 @@ void b2GetParticleWorldCounters( b2World* world, b2Counters* counters )
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->shapeCandidatePayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->floatDeltaBlockPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->vec2DeltaBlockPayloads );
+		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->groupDeltaBlockPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->barrierGroupDeltaBlockPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->eventContactSortPayloads );
 		counters->particleByteCount += b2GetParticlePayloadStorageByteCount( &system->eventBodyContactSortPayloads );
