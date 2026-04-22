@@ -1,4 +1,4 @@
-# Box2D samples app
+# CorePhys samples app
 
 # glad for OpenGL API
 set(GLAD_DIR ${CMAKE_SOURCE_DIR}/extern/glad)
@@ -87,7 +87,7 @@ add_library(implot STATIC
 target_link_libraries(implot PUBLIC imgui)
 target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
 
-set(BOX2D_SAMPLE_FILES
+set(COREPHYS_SAMPLE_FILES
     car.cpp
     car.h
     container.c
@@ -121,7 +121,7 @@ set(BOX2D_SAMPLE_FILES
     stb_truetype.h
 )
 
-add_executable(samples ${BOX2D_SAMPLE_FILES})
+add_executable(samples ${COREPHYS_SAMPLE_FILES})
 
 set_target_properties(samples PROPERTIES
     CXX_STANDARD 20
@@ -129,12 +129,12 @@ set_target_properties(samples PROPERTIES
     CXX_EXTENSIONS NO
 )
 
-if(BOX2D_COMPILE_WARNING_AS_ERROR)
+if(COREPHYS_COMPILE_WARNING_AS_ERROR)
     set_target_properties(samples PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
 target_include_directories(samples PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${JSMN_DIR})
-target_link_libraries(samples PUBLIC box2d shared imgui implot glfw glad enkiTS)
+target_link_libraries(samples PUBLIC corephys shared imgui implot glfw glad enkiTS)
 
 # target_compile_definitions(samples PRIVATE "$<$<CONFIG:DEBUG>:SAMPLES_DEBUG>")
 # message(STATUS "runtime = ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
@@ -147,4 +147,4 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/data/
     ${CMAKE_CURRENT_BINARY_DIR}/data/)
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${BOX2D_SAMPLE_FILES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${COREPHYS_SAMPLE_FILES})

@@ -2,10 +2,10 @@
 include(FetchContent)
 include(CMakeDependentOption)
 
-project(box2d
+project(corephys
 	VERSION 3.2.0
-	DESCRIPTION "A 2D physics engine for games"
-	HOMEPAGE_URL "https://box2d.org"
+	DESCRIPTION "CorePhys, a Jimokomi-focused 2D physics engine based on Box2D"
+	HOMEPAGE_URL "https://github.com/devl0rd/corephys"
 	LANGUAGES C CXX
 )
 
@@ -22,9 +22,9 @@ message(STATUS "CMake host system processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if (MSVC OR APPLE)
-	option(BOX2D_SANITIZE "Enable sanitizers for some builds" OFF)
-	if(BOX2D_SANITIZE)
-		message(STATUS "Box2D Sanitize")
+	option(COREPHYS_SANITIZE "Enable sanitizers for some builds" OFF)
+	if(COREPHYS_SANITIZE)
+		message(STATUS "CorePhys Sanitize")
 		# sanitizers need to apply to all compiled libraries to work well
 		if(MSVC)
 			# address sanitizer only in the debug build
@@ -49,33 +49,33 @@ if (MINGW OR APPLE OR UNIX)
 	add_compile_options(-ffp-contract=off)
 endif()
 
-option(BOX2D_DISABLE_SIMD "Disable SIMD math (slower)" OFF)
-option(BOX2D_COMPILE_WARNING_AS_ERROR "Compile warnings as errors" OFF)
+option(COREPHYS_DISABLE_SIMD "Disable SIMD math (slower)" OFF)
+option(COREPHYS_COMPILE_WARNING_AS_ERROR "Compile warnings as errors" OFF)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-	cmake_dependent_option(BOX2D_AVX2 "Enable AVX2" OFF "NOT BOX2D_DISABLE_SIMD" OFF)
+	cmake_dependent_option(COREPHYS_AVX2 "Enable AVX2" OFF "NOT COREPHYS_DISABLE_SIMD" OFF)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# Needed for samples.exe to find box2d.dll
+# Needed for samples.exe to find the CorePhys DLL
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 
 add_subdirectory(src)
 
-# This hides samples, test, and doxygen from apps that use box2d via FetchContent
+# This hides samples, test, and doxygen from apps that use CorePhys via FetchContent
 if(PROJECT_IS_TOP_LEVEL)
-	option(BOX2D_SAMPLES "Build the Box2D samples" ON)
-	option(BOX2D_BENCHMARKS "Build the Box2D benchmarks" OFF)
-	option(BOX2D_DOCS "Build the Box2D documentation" OFF)
-	option(BOX2D_PROFILE "Enable profiling with Tracy" OFF)
-	option(BOX2D_VALIDATE "Enable heavy validation" ON)
-	option(BOX2D_UNIT_TESTS "Build the Box2D unit tests" ON)
+	option(COREPHYS_SAMPLES "Build the CorePhys samples" ON)
+	option(COREPHYS_BENCHMARKS "Build the CorePhys benchmarks" OFF)
+	option(COREPHYS_DOCS "Build the CorePhys documentation" OFF)
+	option(COREPHYS_PROFILE "Enable profiling with Tracy" OFF)
+	option(COREPHYS_VALIDATE "Enable heavy validation" ON)
+	option(COREPHYS_UNIT_TESTS "Build the CorePhys unit tests" ON)
 	
-	if(BOX2D_UNIT_TESTS OR BOX2D_SAMPLES OR BOX2D_BENCHMARKS)
+	if(COREPHYS_UNIT_TESTS OR COREPHYS_SAMPLES OR COREPHYS_BENCHMARKS)
 		# Emscripten pthread support for enkiTS
 		if(EMSCRIPTEN)
 			set(EMSCRIPTEN_PTHREADS_COMPILER_FLAGS "-pthread -s USE_PTHREADS=1")
@@ -99,16 +99,16 @@ if(PROJECT_IS_TOP_LEVEL)
 		add_subdirectory(shared)
 	endif()
 
-	# Tests need static linkage because they test internal Box2D functions
-	if(NOT BUILD_SHARED_LIBS AND BOX2D_UNIT_TESTS)
-		message(STATUS "Adding Box2D unit tests")
+	# Tests need static linkage because they test internal CorePhys functions
+	if(NOT BUILD_SHARED_LIBS AND COREPHYS_UNIT_TESTS)
+		message(STATUS "Adding CorePhys unit tests")
 		add_subdirectory(test)
 		set_target_properties(test PROPERTIES XCODE_GENERATE_SCHEME TRUE)
 	else()
-		message(STATUS "Skipping Box2D unit tests")
+		message(STATUS "Skipping CorePhys unit tests")
 	endif()
 
-	if(BOX2D_SAMPLES)
+	if(COREPHYS_SAMPLES)
 		add_subdirectory(samples)
 
 		# default startup project for Visual Studio
@@ -124,12 +124,12 @@ if(PROJECT_IS_TOP_LEVEL)
 		endif()
 	endif()
 
-	if(BOX2D_BENCHMARKS)
+	if(COREPHYS_BENCHMARKS)
 		add_subdirectory(benchmark)
 		set_target_properties(benchmark PROPERTIES XCODE_GENERATE_SCHEME TRUE)
 	endif()
 
-	if(BOX2D_DOCS)
+	if(COREPHYS_DOCS)
 		add_subdirectory(docs)
 	endif()
 endif()

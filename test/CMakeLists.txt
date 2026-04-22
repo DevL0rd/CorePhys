@@ -1,6 +1,6 @@
-# Box2D unit test app
+# CorePhys unit test app
 
-set(BOX2D_TEST_FILES
+set(COREPHYS_TEST_FILES
     main.c
     test_bitset.c
     test_collision.c
@@ -16,7 +16,7 @@ set(BOX2D_TEST_FILES
     test_world.c
 )
 
-add_executable(test ${BOX2D_TEST_FILES})
+add_executable(test ${COREPHYS_TEST_FILES})
 
 set_target_properties(test PROPERTIES
     C_STANDARD 17
@@ -24,13 +24,13 @@ set_target_properties(test PROPERTIES
     C_EXTENSIONS NO
 )
 
-if(BOX2D_COMPILE_WARNING_AS_ERROR)
+if(COREPHYS_COMPILE_WARNING_AS_ERROR)
     set_target_properties(test PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
-# Special access to Box2D internals for testing
+# Special access to CorePhys internals for testing
 target_include_directories(test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(test PRIVATE box2d shared enkiTS)
+target_link_libraries(test PRIVATE corephys shared enkiTS)
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES ${BOX2D_TEST_FILES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES ${COREPHYS_TEST_FILES})
