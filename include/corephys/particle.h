@@ -223,6 +223,10 @@ typedef bool b2ParticleBodyContactFilterFcn( b2ParticleSystemId systemId, b2Shap
 /// Particle query filter callback. Return false to exclude the particle from query destruction.
 typedef bool b2ParticleQueryFilterFcn( b2ParticleSystemId systemId, int particleIndex, void* context );
 
+/// Particle AABB query callback. Return false to stop query traversal.
+typedef bool b2ParticleAABBQueryFcn( b2ParticleSystemId systemId, int particleIndex, b2Vec2 position, b2ParticleColor color,
+									 void* userData, void* context );
+
 /// Particle profile data in milliseconds.
 typedef struct b2ParticleProfile
 {
@@ -377,6 +381,8 @@ B2_API const float* b2ParticleSystem_GetLifetimeBuffer( b2ParticleSystemId syste
 B2_API float* b2ParticleSystem_GetMutableLifetimeBuffer( b2ParticleSystemId systemId );
 B2_API void* const* b2ParticleSystem_GetUserDataBuffer( b2ParticleSystemId systemId );
 B2_API void** b2ParticleSystem_GetMutableUserDataBuffer( b2ParticleSystemId systemId );
+B2_API int b2ParticleSystem_QueryParticlesInAABB( b2ParticleSystemId systemId, b2AABB aabb,
+												  b2ParticleAABBQueryFcn* callback, void* context );
 
 B2_API const b2ParticleContactData* b2ParticleSystem_GetContacts( b2ParticleSystemId systemId );
 B2_API int b2ParticleSystem_GetContactCount( b2ParticleSystemId systemId );

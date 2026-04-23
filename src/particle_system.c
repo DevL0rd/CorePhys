@@ -8921,6 +8921,89 @@ void** b2ParticleSystem_GetMutableUserDataBuffer( b2ParticleSystemId systemId )
 	return system != NULL ? system->userDataBuffer : NULL;
 }
 
+static bool b2ParticlePositionInAABB( b2Vec2 position, b2AABB aabb )
+{
+	return position.x >= aabb.lowerBound.x && position.x <= aabb.upperBound.x && position.y >= aabb.lowerBound.y &&
+		   position.y <= aabb.upperBound.y;
+}
+
+static bool b2VisitParticleAABBQuery(
+	b2ParticleSystemId systemId,
+	const b2ParticleSystem* system,
+	int particleIndex,
+	b2ParticleAABBQueryFcn* callback,
+	void* context )
+{
+	return callback(
+		systemId, particleIndex, system->positions[particleIndex],
+		system->colors != NULL ? system->colors[particleIndex] : (b2ParticleColor){ 255, 255, 255, 255 },
+		system->userDataBuffer != NULL ? system->userDataBuffer[particleIndex] : NULL, context );
+}
+
+int b2ParticleSystem_QueryParticlesInAABB( b2ParticleSystemId systemId, b2AABB aabb, b2ParticleAABBQueryFcn* callback,
+										   void* context )
+{
+	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
+	int visitedCount = 0;
+
+	if ( system == NULL || callback == NULL || system->particleCount <= 0 || system->positions == NULL )
+	{
+		return 0;
+	}
+	if ( aabb.lowerBound.x > aabb.upperBound.x || aabb.lowerBound.y > aabb.upperBound.y )
+	{
+		return 0;
+	}
+
+	if ( system->proxyCount == system->particleCount && system->proxies != NULL && system->def.radius > 0.0f )
+	{
+		float invDiameter = 1.0f / ( 2.0f * system->def.radius );
+		int minCellX = (int)floorf( aabb.lowerBound.x * invDiameter );
+		int minCellY = (int)floorf( aabb.lowerBound.y * invDiameter );
+		int maxCellX = (int)floorf( aabb.upperBound.x * invDiameter );
+		int maxCellY = (int)floorf( aabb.upperBound.y * invDiameter );
+
+		for ( int cellY = minCellY; cellY <= maxCellY; ++cellY )
+		{
+			for ( int cellX = minCellX; cellX <= maxCellX; ++cellX )
+			{
+				uint64_t key = b2GetParticleCellKey( cellX, cellY );
+				int proxyIndex = b2LowerBoundParticleProxyKey( system->proxies, system->proxyCount, key );
+				while ( proxyIndex < system->proxyCount && system->proxies[proxyIndex].key == key )
+				{
+					int particleIndex = system->proxies[proxyIndex].index;
+					b2Vec2 position = system->positions[particleIndex];
+					if ( b2ParticlePositionInAABB( position, aabb ) )
+					{
+						visitedCount += 1;
+						if ( b2VisitParticleAABBQuery( systemId, system, particleIndex, callback, context ) == false )
+						{
+							return visitedCount;
+						}
+					}
+					proxyIndex += 1;
+				}
+			}
+		}
+
+		return visitedCount;
+	}
+
+	for ( int particleIndex = 0; particleIndex < system->particleCount; ++particleIndex )
+	{
+		if ( b2ParticlePositionInAABB( system->positions[particleIndex], aabb ) )
+		{
+			visitedCount += 1;
+			if ( b2VisitParticleAABBQuery( systemId, system, particleIndex, callback, context ) == false )
+			{
+				return visitedCount;
+			}
+		}
+	}
+
+	return visitedCount;
+}
+
 const b2ParticleContactData* b2ParticleSystem_GetContacts( b2ParticleSystemId systemId )
 {
 	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
