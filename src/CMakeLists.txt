@@ -110,15 +110,16 @@ endif()
 
 if (COREPHYS_PROFILE)
 	target_compile_definitions(corephys PRIVATE COREPHYS_PROFILE)
-
-	FetchContent_Declare(
-		tracy
-		GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-		GIT_TAG v0.11.1
-		GIT_SHALLOW TRUE
-		GIT_PROGRESS TRUE
-	)
-	FetchContent_MakeAvailable(tracy)
+	if (NOT TARGET TracyClient)
+		FetchContent_Declare(
+			tracy
+			GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+			GIT_TAG v0.11.1
+			GIT_SHALLOW TRUE
+			GIT_PROGRESS TRUE
+		)
+		FetchContent_MakeAvailable(tracy)
+	endif()
 
 	target_link_libraries(corephys PUBLIC TracyClient)
 endif()

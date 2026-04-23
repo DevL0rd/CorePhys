@@ -93,11 +93,31 @@
 	#define b2TracyCZoneNC( ctx, name, color, active ) TracyCZoneNC( ctx, name, color, active )
 	#define b2TracyCZoneEnd( ctx ) TracyCZoneEnd( ctx )
 	#define b2TracyCFrame TracyCFrameMark
+	#define b2TracyCAllocN( ptr, size, name ) TracyCAllocN( ptr, size, name )
+	#define b2TracyCAllocNS( ptr, size, depth, name ) TracyCAllocNS( ptr, size, depth, name )
+	#define b2TracyCFreeN( ptr, name ) TracyCFreeN( ptr, name )
+	#define b2TracyCLockAnnounce( lock ) TracyCLockAnnounce( lock )
+	#define b2TracyCLockTerminate( lock ) TracyCLockTerminate( lock )
+	#define b2TracyCLockBeforeLock( lock ) TracyCLockBeforeLock( lock )
+	#define b2TracyCLockAfterLock( lock ) TracyCLockAfterLock( lock )
+	#define b2TracyCLockAfterUnlock( lock ) TracyCLockAfterUnlock( lock )
+	#define b2TracyCLockCustomName( lock, name, size ) TracyCLockCustomName( lock, name, size )
+	typedef TracyCLockCtx b2TracyCLockCtx;
 #else
 	#define b2TracyCZoneC( ctx, color, active )
 	#define b2TracyCZoneNC( ctx, name, color, active )
 	#define b2TracyCZoneEnd( ctx )
 	#define b2TracyCFrame
+	#define b2TracyCAllocN( ptr, size, name )
+	#define b2TracyCAllocNS( ptr, size, depth, name )
+	#define b2TracyCFreeN( ptr, name )
+	#define b2TracyCLockAnnounce( lock )
+	#define b2TracyCLockTerminate( lock )
+	#define b2TracyCLockBeforeLock( lock )
+	#define b2TracyCLockAfterLock( lock )
+	#define b2TracyCLockAfterUnlock( lock )
+	#define b2TracyCLockCustomName( lock, name, size )
+	typedef void* b2TracyCLockCtx;
 #endif
 
 // clang-format on

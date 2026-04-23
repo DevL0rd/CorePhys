@@ -70,17 +70,21 @@ void b2Yield( void )
 typedef struct b2Mutex
 {
 	CRITICAL_SECTION cs;
+	b2TracyCLockCtx profileLock;
 } b2Mutex;
 
 b2Mutex* b2CreateMutex( void )
 {
 	b2Mutex* m = b2Alloc( sizeof( b2Mutex ) );
 	InitializeCriticalSection( &m->cs );
+	b2TracyCLockAnnounce( m->profileLock );
+	b2TracyCLockCustomName( m->profileLock, "CorePhys Mutex", 14 );
 	return m;
 }
 
 void b2DestroyMutex( b2Mutex* m )
 {
+	b2TracyCLockTerminate( m->profileLock );
 	DeleteCriticalSection( &m->cs );
 	*m = (b2Mutex){ 0 };
 	b2Free( m, sizeof( b2Mutex ) );
@@ -88,11 +92,14 @@ void b2DestroyMutex( b2Mutex* m )
 
 void b2LockMutex( b2Mutex* m )
 {
+	b2TracyCLockBeforeLock( m->profileLock );
 	EnterCriticalSection( &m->cs );
+	b2TracyCLockAfterLock( m->profileLock );
 }
 
 void b2UnlockMutex( b2Mutex* m )
 {
+	b2TracyCLockAfterUnlock( m->profileLock );
 	LeaveCriticalSection( &m->cs );
 }
 
@@ -131,17 +138,21 @@ void b2Yield( void )
 typedef struct b2Mutex
 {
 	pthread_mutex_t mtx;
+	b2TracyCLockCtx profileLock;
 } b2Mutex;
 
 b2Mutex* b2CreateMutex( void )
 {
 	b2Mutex* m = b2Alloc( sizeof( b2Mutex ) );
 	pthread_mutex_init( &m->mtx, NULL );
+	b2TracyCLockAnnounce( m->profileLock );
+	b2TracyCLockCustomName( m->profileLock, "CorePhys Mutex", 14 );
 	return m;
 }
 
 void b2DestroyMutex( b2Mutex* m )
 {
+	b2TracyCLockTerminate( m->profileLock );
 	pthread_mutex_destroy( &m->mtx );
 	*m = (b2Mutex){ 0 };
 	b2Free( m, sizeof( b2Mutex ) );
@@ -149,11 +160,14 @@ void b2DestroyMutex( b2Mutex* m )
 
 void b2LockMutex( b2Mutex* m )
 {
+	b2TracyCLockBeforeLock( m->profileLock );
 	pthread_mutex_lock( &m->mtx );
+	b2TracyCLockAfterLock( m->profileLock );
 }
 
 void b2UnlockMutex( b2Mutex* m )
 {
+	b2TracyCLockAfterUnlock( m->profileLock );
 	pthread_mutex_unlock( &m->mtx );
 }
 
@@ -211,17 +225,21 @@ void b2Yield( void )
 typedef struct b2Mutex
 {
 	pthread_mutex_t mtx;
+	b2TracyCLockCtx profileLock;
 } b2Mutex;
 
 b2Mutex* b2CreateMutex( void )
 {
 	b2Mutex* m = b2Alloc( sizeof( b2Mutex ) );
 	pthread_mutex_init( &m->mtx, NULL );
+	b2TracyCLockAnnounce( m->profileLock );
+	b2TracyCLockCustomName( m->profileLock, "CorePhys Mutex", 14 );
 	return m;
 }
 
 void b2DestroyMutex( b2Mutex* m )
 {
+	b2TracyCLockTerminate( m->profileLock );
 	pthread_mutex_destroy( &m->mtx );
 	*m = (b2Mutex){ 0 };
 	b2Free( m, sizeof( b2Mutex ) );
@@ -229,11 +247,14 @@ void b2DestroyMutex( b2Mutex* m )
 
 void b2LockMutex( b2Mutex* m )
 {
+	b2TracyCLockBeforeLock( m->profileLock );
 	pthread_mutex_lock( &m->mtx );
+	b2TracyCLockAfterLock( m->profileLock );
 }
 
 void b2UnlockMutex( b2Mutex* m )
 {
+	b2TracyCLockAfterUnlock( m->profileLock );
 	pthread_mutex_unlock( &m->mtx );
 }
 

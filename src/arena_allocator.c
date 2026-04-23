@@ -13,6 +13,7 @@ B2_ARRAY_SOURCE( b2ArenaEntry, b2ArenaEntry )
 
 b2ArenaAllocator b2CreateArenaAllocator( int capacity )
 {
+	b2TracyCZoneNC( create_arena, "Arena Create", 0xF4A460, true );
 	B2_ASSERT( capacity >= 0 );
 	b2ArenaAllocator allocator = { 0 };
 	allocator.capacity = capacity;
@@ -21,17 +22,21 @@ b2ArenaAllocator b2CreateArenaAllocator( int capacity )
 	allocator.maxAllocation = 0;
 	allocator.index = 0;
 	allocator.entries = b2ArenaEntryArray_Create( 32 );
+	b2TracyCZoneEnd( create_arena );
 	return allocator;
 }
 
 void b2DestroyArenaAllocator( b2ArenaAllocator* allocator )
 {
+	b2TracyCZoneNC( destroy_arena, "Arena Destroy", 0x8B4513, true );
 	b2ArenaEntryArray_Destroy( &allocator->entries );
 	b2Free( allocator->data, allocator->capacity );
+	b2TracyCZoneEnd( destroy_arena );
 }
 
 void* b2AllocateArenaItem( b2ArenaAllocator* alloc, int size, const char* name )
 {
+	b2TracyCZoneNC( alloc_arena_item, "Arena Allocate", 0xCD853F, true );
 	// ensure allocation is 32 byte aligned to support 256-bit SIMD
 	int size32 = ( ( size - 1 ) | 0x1F ) + 1;
 
@@ -62,11 +67,13 @@ void* b2AllocateArenaItem( b2ArenaAllocator* alloc, int size, const char* name )
 	}
 
 	b2ArenaEntryArray_Push( &alloc->entries, entry );
+	b2TracyCZoneEnd( alloc_arena_item );
 	return entry.data;
 }
 
 void b2FreeArenaItem( b2ArenaAllocator* alloc, void* mem )
 {
+	b2TracyCZoneNC( free_arena_item, "Arena Free", 0xD2B48C, true );
 	int entryCount = alloc->entries.count;
 	B2_ASSERT( entryCount > 0 );
 	b2ArenaEntry* entry = alloc->entries.data + ( entryCount - 1 );
@@ -81,10 +88,12 @@ void b2FreeArenaItem( b2ArenaAllocator* alloc, void* mem )
 	}
 	alloc->allocation -= entry->size;
 	b2ArenaEntryArray_Pop( &alloc->entries );
+	b2TracyCZoneEnd( free_arena_item );
 }
 
 void b2GrowArena( b2ArenaAllocator* alloc )
 {
+	b2TracyCZoneNC( grow_arena, "Arena Grow", 0xD2691E, true );
 	// Stack must not be in use
 	B2_ASSERT( alloc->allocation == 0 );
 
@@ -94,6 +103,7 @@ void b2GrowArena( b2ArenaAllocator* alloc )
 		alloc->capacity = alloc->maxAllocation + alloc->maxAllocation / 2;
 		alloc->data = b2Alloc( alloc->capacity );
 	}
+	b2TracyCZoneEnd( grow_arena );
 }
 
 int b2GetArenaCapacity( b2ArenaAllocator* alloc )

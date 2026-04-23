@@ -19,9 +19,122 @@
 
 #ifdef COREPHYS_PROFILE
 
+#if defined( B2_PLATFORM_WINDOWS )
+#include <windows.h>
+#else
+#include <pthread.h>
+#endif
+
 #include <tracy/TracyC.h>
-#define b2TracyCAlloc( ptr, size ) TracyCAlloc( ptr, size )
-#define b2TracyCFree( ptr ) TracyCFree( ptr )
+#define b2TracyCAlloc( ptr, size ) TracyCAllocNS( ptr, size, 4, "CorePhys Heap" )
+#define b2TracyCFree( ptr ) TracyCFreeNS( ptr, 4, "CorePhys Heap" )
+
+typedef struct b2TracyMemoryTracker
+{
+	void** items;
+	size_t count;
+	size_t capacity;
+} b2TracyMemoryTracker;
+
+static b2TracyMemoryTracker b2_tracyMemoryTracker = { 0 };
+
+#if defined( B2_PLATFORM_WINDOWS )
+static INIT_ONCE b2_tracyMemoryTrackerOnce = INIT_ONCE_STATIC_INIT;
+static CRITICAL_SECTION b2_tracyMemoryTrackerMutex;
+
+static BOOL CALLBACK b2TracyMemoryTrackerInitOnce( PINIT_ONCE initOnce, PVOID parameter, PVOID* context )
+{
+	(void)initOnce;
+	(void)parameter;
+	(void)context;
+	InitializeCriticalSection( &b2_tracyMemoryTrackerMutex );
+	return TRUE;
+}
+
+static void b2TracyMemoryTrackerLock( void )
+{
+	InitOnceExecuteOnce( &b2_tracyMemoryTrackerOnce, b2TracyMemoryTrackerInitOnce, NULL, NULL );
+	EnterCriticalSection( &b2_tracyMemoryTrackerMutex );
+}
+
+static void b2TracyMemoryTrackerUnlock( void )
+{
+	LeaveCriticalSection( &b2_tracyMemoryTrackerMutex );
+}
+#else
+static pthread_mutex_t b2_tracyMemoryTrackerMutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void b2TracyMemoryTrackerLock( void )
+{
+	pthread_mutex_lock( &b2_tracyMemoryTrackerMutex );
+}
+
+static void b2TracyMemoryTrackerUnlock( void )
+{
+	pthread_mutex_unlock( &b2_tracyMemoryTrackerMutex );
+}
+#endif
+
+static bool b2TracyMemoryTrackerAdd( void* ptr )
+{
+	size_t i = 0;
+	if ( ptr == NULL )
+	{
+		return false;
+	}
+
+	b2TracyMemoryTrackerLock();
+	for ( i = 0; i < b2_tracyMemoryTracker.count; ++i )
+	{
+		if ( b2_tracyMemoryTracker.items[i] == ptr )
+		{
+			b2TracyMemoryTrackerUnlock();
+			return false;
+		}
+	}
+
+	if ( b2_tracyMemoryTracker.count == b2_tracyMemoryTracker.capacity )
+	{
+		size_t nextCapacity = b2_tracyMemoryTracker.capacity > 0 ? b2_tracyMemoryTracker.capacity * 2 : 256;
+		void** nextItems = realloc( b2_tracyMemoryTracker.items, nextCapacity * sizeof( *nextItems ) );
+		if ( nextItems == NULL )
+		{
+			b2TracyMemoryTrackerUnlock();
+			return false;
+		}
+
+		b2_tracyMemoryTracker.items = nextItems;
+		b2_tracyMemoryTracker.capacity = nextCapacity;
+	}
+
+	b2_tracyMemoryTracker.items[b2_tracyMemoryTracker.count++] = ptr;
+	b2TracyMemoryTrackerUnlock();
+	return true;
+}
+
+static bool b2TracyMemoryTrackerRemove( void* ptr )
+{
+	size_t i = 0;
+	if ( ptr == NULL )
+	{
+		return false;
+	}
+
+	b2TracyMemoryTrackerLock();
+	for ( i = 0; i < b2_tracyMemoryTracker.count; ++i )
+	{
+		if ( b2_tracyMemoryTracker.items[i] == ptr )
+		{
+			b2_tracyMemoryTracker.items[i] = b2_tracyMemoryTracker.items[b2_tracyMemoryTracker.count - 1];
+			b2_tracyMemoryTracker.count -= 1;
+			b2TracyMemoryTrackerUnlock();
+			return true;
+		}
+	}
+
+	b2TracyMemoryTrackerUnlock();
+	return false;
+}
 
 #else
 
@@ -137,7 +250,12 @@ void* b2Alloc( int size )
 	if ( b2_allocFcn != NULL )
 	{
 		void* ptr = b2_allocFcn( size32, B2_ALIGNMENT );
-		b2TracyCAlloc( ptr, size );
+#ifdef COREPHYS_PROFILE
+		if ( TracyCIsConnected != 0 && b2TracyMemoryTrackerAdd( ptr ) )
+		{
+			b2TracyCAlloc( ptr, size );
+		}
+#endif
 
 		B2_ASSERT( ptr != NULL );
 		B2_ASSERT( ( (uintptr_t)ptr & 0x1F ) == 0 );
@@ -158,7 +276,12 @@ void* b2Alloc( int size )
 	void* ptr = aligned_alloc( B2_ALIGNMENT, size32 );
 #endif
 
-	b2TracyCAlloc( ptr, size );
+#ifdef COREPHYS_PROFILE
+	if ( TracyCIsConnected != 0 && b2TracyMemoryTrackerAdd( ptr ) )
+	{
+		b2TracyCAlloc( ptr, size );
+	}
+#endif
 
 	B2_ASSERT( ptr != NULL );
 	B2_ASSERT( ( (uintptr_t)ptr & 0x1F ) == 0 );
@@ -180,7 +303,12 @@ void b2Free( void* mem, int size )
 		return;
 	}
 
-	b2TracyCFree( mem );
+#ifdef COREPHYS_PROFILE
+	if ( b2TracyMemoryTrackerRemove( mem ) )
+	{
+		b2TracyCFree( mem );
+	}
+#endif
 
 	if ( b2_freeFcn != NULL )
 	{

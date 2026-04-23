@@ -3587,11 +3587,13 @@ static int b2AppendParticle( b2ParticleSystem* system, const b2ParticleDef* def,
 
 int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2ParticleDef* def )
 {
+	b2TracyCZoneNC( create_particle, "Create Particle", 0x6495ED, true );
 	B2_CHECK_DEF( def );
 
 	b2ParticleSystem* system = b2TryGetParticleSystem( systemId );
 	if ( system == NULL )
 	{
+		b2TracyCZoneEnd( create_particle );
 		return B2_NULL_INDEX;
 	}
 
@@ -3602,6 +3604,7 @@ int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2Partic
 		b2ParticleGroup* group = b2TryGetParticleGroup( def->groupId, &groupSystem );
 		if ( group == NULL || groupSystem != system )
 		{
+			b2TracyCZoneEnd( create_particle );
 			return B2_NULL_INDEX;
 		}
 		groupIndex = group->localIndex;
@@ -3610,22 +3613,28 @@ int b2ParticleSystem_CreateParticle( b2ParticleSystemId systemId, const b2Partic
 	int index = b2AppendParticle( system, def, groupIndex );
 	if ( index == B2_NULL_INDEX )
 	{
+		b2TracyCZoneEnd( create_particle );
 		return B2_NULL_INDEX;
 	}
 
 	if ( groupIndex != B2_NULL_INDEX )
 	{
-		return b2ReorderParticlesByGroup( system, index );
+		index = b2ReorderParticlesByGroup( system, index );
+		b2TracyCZoneEnd( create_particle );
+		return index;
 	}
 
 	b2RefreshGroups( system );
+	b2TracyCZoneEnd( create_particle );
 	return index;
 }
 
 static void b2ParticleSystem_DestroyParticleInternal( b2ParticleSystem* system, int particleIndex, bool callDestructionListener )
 {
+	b2TracyCZoneNC( destroy_particle, "Destroy Particle", 0xCD5C5C, true );
 	if ( system == NULL || particleIndex < 0 || system->particleCount <= particleIndex )
 	{
+		b2TracyCZoneEnd( destroy_particle );
 		return;
 	}
 
@@ -3634,6 +3643,7 @@ static void b2ParticleSystem_DestroyParticleInternal( b2ParticleSystem* system, 
 	{
 		system->flags[particleIndex] |= b2_destructionListenerParticle;
 	}
+	b2TracyCZoneEnd( destroy_particle );
 }
 
 void b2ParticleSystem_DestroyParticle( b2ParticleSystemId systemId, int particleIndex )
@@ -8389,23 +8399,31 @@ static void b2AccumulateParticleSystemProfile( b2World* world, const b2ParticleS
 
 static void b2StepParticleSystem( b2World* world, b2ParticleSystem* system, float timeStep )
 {
+	b2TracyCZoneNC( particle_step, "Particle Step", 0x2D6CDF, true );
 	if ( timeStep <= 0.0f )
 	{
+		b2TracyCZoneEnd( particle_step );
 		return;
 	}
 
 	if ( system->id == B2_NULL_INDEX || system->particleCount == 0 || system->paused )
 	{
+		b2TracyCZoneEnd( particle_step );
 		return;
 	}
 
 	system->profile = (b2ParticleProfile){ 0 };
 	b2ResetParticleStepCounters( system );
 	uint64_t stepTicks = b2GetTicks();
-	b2SolveParticleLifetimes( world, system, timeStep );
+	{
+		b2TracyCZoneNC( lifetimes_zone, "Particle Lifetimes", 0x87CEFA, true );
+		b2SolveParticleLifetimes( world, system, timeStep );
+		b2TracyCZoneEnd( lifetimes_zone );
+	}
 	if ( system->particleCount == 0 )
 	{
 		system->profile.step = b2GetMilliseconds( stepTicks );
+		b2TracyCZoneEnd( particle_step );
 		return;
 	}
 
@@ -8417,41 +8435,68 @@ static void b2StepParticleSystem( b2World* world, b2ParticleSystem* system, floa
 	float subStep = timeStep / (float)system->def.iterationCount;
 	for ( int iteration = 0; iteration < system->def.iterationCount; ++iteration )
 	{
+		b2TracyCZoneNC( iteration_zone, "Particle Iteration", 0x4682B4, true );
 		system->timestamp += 1;
 		uint64_t zombieTicks = b2GetTicks();
-		b2RemoveZombieParticles( system );
+		{
+			b2TracyCZoneNC( zombie_zone, "Particle Zombie Cleanup", 0xFF6347, true );
+			b2RemoveZombieParticles( system );
+			b2TracyCZoneEnd( zombie_zone );
+		}
 		system->profile.zombie += b2GetMilliseconds( zombieTicks );
 
-		b2UpdateParticleContacts( system );
-		b2UpdateReactiveParticlePairsAndTriads( system );
-		b2UpdateParticleBodyContacts( world, system );
-		b2ComputeParticleWeights( world, system );
-		b2SolveParticleForceBuffer( world, system, subStep );
-		b2SolveParticleViscous( world, system );
-		b2SolveParticleRepulsive( world, system, subStep );
-		b2SolveParticlePowder( world, system, subStep );
-		b2SolveParticleTensile( world, system, subStep );
-		b2SolveParticleSolid( world, system, subStep );
-		b2SolveParticleColorMixing( system );
-		b2SolveParticleGravity( world, system, subStep );
-		b2SolveParticleStaticPressure( world, system, subStep );
-		b2SolveParticlePressure( world, system, subStep );
-		b2SolveParticleDamping( world, system, subStep );
-		b2SolveParticleExtraDamping( world, system );
-		b2SolveParticleSpringElastic( world, system, subStep );
-		b2LimitParticleVelocities( world, system, subStep );
-		b2SolveRigidDampingParticles( world, system );
-		b2SolveBarrierParticles( system, subStep );
-		b2SolveParticleBodyCollision( world, system, subStep );
-		b2SolveRigidParticles( system, subStep );
-		b2SolveWallParticles( world, system );
-		b2IntegrateParticles( world, system, subStep );
+		{
+			b2TracyCZoneNC( contacts_zone, "Particle Contacts", 0x9370DB, true );
+			b2UpdateParticleContacts( system );
+			b2UpdateReactiveParticlePairsAndTriads( system );
+			b2UpdateParticleBodyContacts( world, system );
+			b2TracyCZoneEnd( contacts_zone );
+		}
+		{
+			b2TracyCZoneNC( forces_zone, "Particle Forces", 0x3CB371, true );
+			b2ComputeParticleWeights( world, system );
+			b2SolveParticleForceBuffer( world, system, subStep );
+			b2SolveParticleViscous( world, system );
+			b2SolveParticleRepulsive( world, system, subStep );
+			b2SolveParticlePowder( world, system, subStep );
+			b2SolveParticleTensile( world, system, subStep );
+			b2SolveParticleSolid( world, system, subStep );
+			b2SolveParticleColorMixing( system );
+			b2SolveParticleGravity( world, system, subStep );
+			b2SolveParticleStaticPressure( world, system, subStep );
+			b2SolveParticlePressure( world, system, subStep );
+			b2SolveParticleDamping( world, system, subStep );
+			b2SolveParticleExtraDamping( world, system );
+			b2SolveParticleSpringElastic( world, system, subStep );
+			b2TracyCZoneEnd( forces_zone );
+		}
+		{
+			b2TracyCZoneNC( collision_zone, "Particle Collision", 0xDAA520, true );
+			b2LimitParticleVelocities( world, system, subStep );
+			b2SolveRigidDampingParticles( world, system );
+			b2SolveBarrierParticles( system, subStep );
+			b2SolveParticleBodyCollision( world, system, subStep );
+			b2SolveRigidParticles( system, subStep );
+			b2SolveWallParticles( world, system );
+			b2TracyCZoneEnd( collision_zone );
+		}
+		{
+			b2TracyCZoneNC( integrate_zone, "Particle Integrate", 0xF0E68C, true );
+			b2IntegrateParticles( world, system, subStep );
+			b2TracyCZoneEnd( integrate_zone );
+		}
+		b2TracyCZoneEnd( iteration_zone );
 	}
 
 	uint64_t groupTicks = b2GetTicks();
-	b2RefreshGroups( system );
+	{
+		b2TracyCZoneNC( groups_zone, "Particle Groups", 0xF08080, true );
+		b2RefreshGroups( system );
+		b2TracyCZoneEnd( groups_zone );
+	}
 	system->profile.groups += b2GetMilliseconds( groupTicks );
 	system->profile.step = b2GetMilliseconds( stepTicks );
+	b2TracyCZoneEnd( particle_step );
 }
 
 typedef struct b2ParticleSystemStepTaskContext
@@ -8473,8 +8518,10 @@ static void b2ParticleSystemStepTask( int startIndex, int endIndex, uint32_t wor
 
 void b2StepParticles( b2World* world, float timeStep )
 {
+	b2TracyCZoneNC( step_particles, "Step Particles", 0x00BFFF, true );
 	if ( timeStep <= 0.0f )
 	{
+		b2TracyCZoneEnd( step_particles );
 		return;
 	}
 
@@ -8526,6 +8573,7 @@ void b2StepParticles( b2World* world, float timeStep )
 			b2AccumulateParticleSystemProfile( world, system );
 		}
 	}
+	b2TracyCZoneEnd( step_particles );
 }
 
 void b2DrawParticles( b2World* world, b2DebugDraw* draw )
